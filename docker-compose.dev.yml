@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  # MinIO Object Storage - Development Configuration
+  minio:
+    image: minio/minio:latest
+    container_name: silo-minio-dev
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=dev
+      - MINIO_ROOT_PASSWORD=devpassword
+      - MINIO_BROWSER_REDIRECT_URL=http://localhost:9001
+    volumes:
+      - ./docker/volumes/minio:/data
+    networks:
+      - silo-dev-network
+
+  # Create MinIO buckets for development
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 dev devpassword;
+      /usr/bin/mc mb myminio/files;
+      /usr/bin/mc mb myminio/backups;
+      /usr/bin/mc mb myminio/quarantine;
+      /usr/bin/mc mb myminio/temp;
+      /usr/bin/mc policy set public myminio/files;
+      exit 0;
+      "
+    networks:
+      - silo-dev-network
+
+  # OpenSearch - Development with minimal security
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: silo-opensearch-dev
+    environment:
+      - cluster.name=silo-dev-cluster
+      - node.name=silo-dev-node
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms256m -Xmx256m"
+      - "DISABLE_INSTALL_DEMO_CONFIG=true"
+      - "DISABLE_SECURITY_PLUGIN=true"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - opensearch-dev-data:/usr/share/opensearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - silo-dev-network
+
+  # Redis for development
+  redis:
+    image: redis:7-alpine
+    container_name: silo-redis-dev
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    networks:
+      - silo-dev-network
+
+  # PostgreSQL for development
+  postgres:
+    image: postgres:15-alpine
+    container_name: silo-postgres-dev
+    environment:
+      - POSTGRES_DB=silo_dev
+      - POSTGRES_USER=dev
+      - POSTGRES_PASSWORD=devpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    networks:
+      - silo-dev-network
+
+  # ClamAV for development (optional, can be disabled for faster startup)
+  clamav:
+    image: clamav/clamav:latest
+    container_name: silo-clamav-dev
+    ports:
+      - "3310:3310"
+    profiles:
+      - full  # Only start with --profile full
+    networks:
+      - silo-dev-network
+
+networks:
+  silo-dev-network:
+    driver: bridge
+
+volumes:
+  opensearch-dev-data:
+  postgres-dev-data:

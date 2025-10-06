@@ -1,0 +1,191 @@
+version: '3.8'
+
+services:
+  # MinIO Object Storage - Production Configuration
+  minio:
+    image: minio/minio:latest
+    container_name: silo-minio-prod
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_BROWSER_REDIRECT_URL=${MINIO_BROWSER_URL}
+    volumes:
+      - /opt/silo/minio:/data
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - silo-prod-network
+
+  # MinIO bucket initialization for production
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+      /usr/bin/mc mb myminio/files;
+      /usr/bin/mc mb myminio/backups;
+      /usr/bin/mc mb myminio/quarantine;
+      /usr/bin/mc mb myminio/archives;
+      /usr/bin/mc ilm add --expiry-days 365 myminio/archives;
+      exit 0;
+      "
+    networks:
+      - silo-prod-network
+
+  # OpenSearch cluster for production
+  opensearch-node1:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: silo-opensearch-node1
+    environment:
+      - cluster.name=silo-prod-cluster
+      - node.name=opensearch-node1
+      - discovery.seed_hosts=opensearch-node1,opensearch-node2
+      - cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_ADMIN_PASSWORD}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - /opt/silo/opensearch/node1:/usr/share/opensearch/data
+    ports:
+      - "9200:9200"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    restart: unless-stopped
+    networks:
+      - silo-prod-network
+
+  opensearch-node2:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: silo-opensearch-node2
+    environment:
+      - cluster.name=silo-prod-cluster
+      - node.name=opensearch-node2
+      - discovery.seed_hosts=opensearch-node1,opensearch-node2
+      - cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_ADMIN_PASSWORD}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - /opt/silo/opensearch/node2:/usr/share/opensearch/data
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    restart: unless-stopped
+    networks:
+      - silo-prod-network
+
+  # Redis with persistence for production
+  redis:
+    image: redis:7-alpine
+    container_name: silo-redis-prod
+    command: redis-server --appendonly yes --appendfsync everysec
+    ports:
+      - "6379:6379"
+    volumes:
+      - /opt/silo/redis:/data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    restart: unless-stopped
+    networks:
+      - silo-prod-network
+
+  # PostgreSQL for production
+  postgres:
+    image: postgres:15-alpine
+    container_name: silo-postgres-prod
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - /opt/silo/postgres:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    restart: unless-stopped
+    networks:
+      - silo-prod-network
+
+  # ClamAV for malware scanning
+  clamav:
+    image: clamav/clamav:latest
+    container_name: silo-clamav-prod
+    ports:
+      - "3310:3310"
+    volumes:
+      - /opt/silo/clamav:/var/lib/clamav
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    restart: unless-stopped
+    networks:
+      - silo-prod-network
+
+networks:
+  silo-prod-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16

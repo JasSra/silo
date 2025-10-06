@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: silo-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=siloadmin
+      - MINIO_ROOT_PASSWORD=silopassword123
+    volumes:
+      - ./docker/volumes/minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - silo-network
+
+  # Create MinIO buckets on startup
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 siloadmin silopassword123;
+      /usr/bin/mc mb myminio/files;
+      /usr/bin/mc mb myminio/backups;
+      /usr/bin/mc mb myminio/quarantine;
+      /usr/bin/mc policy set public myminio/files;
+      exit 0;
+      "
+    networks:
+      - silo-network
+
+  # OpenSearch for indexing and search
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: silo-opensearch
+    environment:
+      - cluster.name=silo-cluster
+      - node.name=silo-node
+      - discovery.seed_hosts=opensearch
+      - cluster.initial_cluster_manager_nodes=silo-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "DISABLE_INSTALL_DEMO_CONFIG=true"
+      - "DISABLE_SECURITY_PLUGIN=true"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - ./docker/volumes/opensearch:/usr/share/opensearch/data
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    networks:
+      - silo-network
+
+  # OpenSearch Dashboards
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.11.0
+    container_name: silo-opensearch-dashboards
+    ports:
+      - "5601:5601"
+    environment:
+      - 'OPENSEARCH_HOSTS=["http://opensearch:9200"]'
+      - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true"
+    depends_on:
+      - opensearch
+    networks:
+      - silo-network
+
+  # Redis for Hangfire and caching
+  redis:
+    image: redis:7-alpine
+    container_name: silo-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./docker/volumes/redis:/data
+    networks:
+      - silo-network
+
+  # ClamAV for malware scanning
+  clamav:
+    image: clamav/clamav:latest
+    container_name: silo-clamav
+    ports:
+      - "3310:3310"
+    volumes:
+      - ./docker/volumes/clamav:/var/lib/clamav
+    networks:
+      - silo-network
+
+  # PostgreSQL for application data
+  postgres:
+    image: postgres:15-alpine
+    container_name: silo-postgres
+    environment:
+      - POSTGRES_DB=silo
+      - POSTGRES_USER=silo
+      - POSTGRES_PASSWORD=silopassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker/volumes/postgres:/var/lib/postgresql/data
+    networks:
+      - silo-network
+
+networks:
+  silo-network:
+    driver: bridge
+
+volumes:
+  minio-data:
+  opensearch-data:
+  redis-data:
+  clamav-data:
+  postgres-data:
