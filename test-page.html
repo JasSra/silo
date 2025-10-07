@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Silo File Upload Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 800px; }
+        .result { margin-top: 20px; padding: 10px; border: 1px solid #ddd; background: #f9f9f9; }
+        .success { border-color: green; background: #e8f5e8; }
+        .error { border-color: red; background: #ffe8e8; }
+        button { padding: 10px 20px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Silo File Management System - Test</h1>
+        
+        <h2>1. Upload File</h2>
+        <input type="file" id="fileInput" />
+        <button onclick="uploadFile()">Upload File</button>
+        <div id="uploadResult" class="result" style="display:none;"></div>
+        
+        <h2>2. Search Files</h2>
+        <input type="text" id="searchQuery" placeholder="Enter search query" />
+        <button onclick="searchFiles()">Search</button>
+        <div id="searchResult" class="result" style="display:none;"></div>
+        
+        <h2>3. Advanced Search</h2>
+        <div style="border: 1px solid #ccc; padding: 15px; margin: 10px 0;">
+            <div style="margin-bottom: 10px;">
+                <label>Query: </label>
+                <input type="text" id="advQuery" placeholder="Search text" style="width: 200px;" />
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label>Extensions (comma-separated): </label>
+                <input type="text" id="advExtensions" placeholder="e.g. png,jpg,pdf" style="width: 150px;" />
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label>File Size Range: </label>
+                <input type="number" id="advMinSize" placeholder="Min bytes" style="width: 100px;" />
+                <span> to </span>
+                <input type="number" id="advMaxSize" placeholder="Max bytes" style="width: 100px;" />
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label>Wildcard Pattern: </label>
+                <input type="text" id="advWildcard" placeholder="e.g. Screenshot*" style="width: 150px;" />
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label>Context/Path: </label>
+                <input type="text" id="advContext" placeholder="Path filter" style="width: 150px;" />
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label>Limit: </label>
+                <input type="number" id="advLimit" value="50" style="width: 80px;" />
+            </div>
+            <button onclick="advancedSearchFiles()">Advanced Search</button>
+        </div>
+        <div id="advSearchResult" class="result" style="display:none;"></div>
+        
+        <h2>4. File Statistics</h2>
+        <button onclick="getFileStatistics()">Get Statistics</button>
+        <div id="statsResult" class="result" style="display:none;"></div>
+        
+        <h2>5. File Download & Metadata</h2>
+        <div style="border: 1px solid #ccc; padding: 15px; margin: 10px 0;">
+            <h3>Download File by ID</h3>
+            <input type="text" id="downloadFileId" placeholder="File ID (GUID)" style="width: 300px;" />
+            <button onclick="downloadFile()">Download File</button>
+            <button onclick="streamDownloadFile()">Stream Download</button>
+            <div id="downloadResult" class="result" style="display:none;"></div>
+            
+            <h3>Get File Metadata</h3>
+            <input type="text" id="metadataFileId" placeholder="File ID (GUID)" style="width: 300px;" />
+            <button onclick="getFileMetadata()">Get Metadata</button>
+            <div id="metadataResult" class="result" style="display:none;"></div>
+            
+            <h3>Batch Metadata Retrieval</h3>
+            <textarea id="batchFileIds" placeholder="Enter file IDs (one per line)" rows="3" style="width: 300px;"></textarea>
+            <br>
+            <button onclick="getBatchMetadata()">Get Batch Metadata</button>
+            <div id="batchMetadataResult" class="result" style="display:none;"></div>
+        </div>
+        
+        <h2>6. Get Pipeline Status</h2>
+        <button onclick="getPipelineStatus()">Get Status</button>
+        <div id="statusResult" class="result" style="display:none;"></div>
+        
+        <h2>7. Bucket Management</h2>
+        <div style="border: 1px solid #ccc; padding: 15px; margin: 10px 0;">
+            <h3>List Buckets</h3>
+            <button onclick="listBuckets()">List All Buckets</button>
+            <div id="bucketsResult" class="result" style="display:none;"></div>
+            
+            <h3>Bucket Status</h3>
+            <input type="text" id="bucketName" placeholder="Bucket name (e.g. files)" style="width: 200px;" />
+            <button onclick="getBucketStatus()">Get Status</button>
+            <div id="bucketStatusResult" class="result" style="display:none;"></div>
+            
+            <h3>Create Bucket</h3>
+            <input type="text" id="newBucketName" placeholder="New bucket name" style="width: 200px;" />
+            <button onclick="createBucket()">Create Bucket</button>
+            <div id="createBucketResult" class="result" style="display:none;"></div>
+            
+            <h3>List Files in Bucket</h3>
+            <input type="text" id="listBucketName" placeholder="Bucket name" style="width: 150px;" />
+            <input type="text" id="listBucketPrefix" placeholder="Prefix (optional)" style="width: 150px;" />
+            <button onclick="listBucketFiles()">List Files</button>
+            <div id="bucketFilesResult" class="result" style="display:none;"></div>
+            
+            <h3>Bucket Configuration</h3>
+            <button onclick="getBucketConfiguration()">Get Configuration</button>
+            <div id="bucketConfigResult" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5289/api';
+        
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const resultDiv = document.getElementById('uploadResult');
+            
+            if (!fileInput.files[0]) {
+                showResult(resultDiv, 'Please select a file first', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            try {
+                showResult(resultDiv, 'Uploading file...', '');
+                const response = await fetch(`${API_BASE}/files/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showResult(resultDiv, `
+                        <h3>✅ Upload Successful!</h3>
+                        <p><strong>File ID:</strong> ${result.fileId}</p>
+                        <p><strong>File Name:</strong> ${result.fileName}</p>
+                        <p><strong>Processed At:</strong> ${result.processedAt}</p>
+                        <p><strong>Steps Executed:</strong> ${result.stepsExecuted}</p>
+                        <h4>Pipeline Results:</h4>
+                        <ul>
+                            ${result.stepResults.map(step => 
+                                `<li>${step.stepName}: ${step.success ? '✅' : '❌'} (${step.duration}ms) ${step.errorMessage || ''}</li>`
+                            ).join('')}
+                        </ul>
+                    `, 'success');
+                    window.lastFileId = result.fileId;
+                    window.lastFileName = result.fileName;
+                } else {
+                    showResult(resultDiv, `Error: ${result.error || 'Upload failed'}`, 'error');
+                }
+            } catch (error) {
+                showResult(resultDiv, `Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function searchFiles() {
+            const query = document.getElementById('searchQuery').value;
+            const resultDiv = document.getElementById('searchResult');
+            
+            if (!query) {
+                showResult(resultDiv, 'Please enter a search query', 'error');
+                return;
+            }
+            
+            try {
+                showResult(resultDiv, 'Searching...', '');
+                const response = await fetch(`${API_BASE}/files/search?query=${encodeURIComponent(query)}`);
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showResult(resultDiv, `
+                        <h3>🔍 Search Results:</h3>
+                        <p>Found ${result.length} files</p>
+                        <ul>
+                            ${result.map(file => 
+                                `<li>
+                                    <strong>${file.fileName}</strong> (ID: ${file.id})<br>
+                                    Size: ${file.fileSize} bytes | Type: ${file.mimeType}<br>
+                                    Created: ${file.createdAt}
+                                </li>`
+                            ).join('')}
+                        </ul>
+                    `, 'success');
+                } else {
+                    showResult(resultDiv, `Search Error: ${result.error || 'Search failed'}`, 'error');
+                }
+            } catch (error) {
+                showResult(resultDiv, `Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function advancedSearchFiles() {
+            const resultDiv = document.getElementById('advSearchResult');
+            
+            // Get form values
+            const query = document.getElementById('advQuery').value;
+            const extensions = document.getElementById('advExtensions').value;
+            const minSize = document.getElementById('advMinSize').value;
+            const maxSize = document.getElementById('advMaxSize').value;
+            const wildcard = document.getElementById('advWildcard').value;
+            const context = document.getElementById('advContext').value;
+            const limit = document.getElementById('advLimit').value || 50;
+            
+            // Build query parameters
+            const params = new URLSearchParams();
+            if (query) params.append('query', query);
+            if (extensions) params.append('extensions', extensions);
+            if (minSize) params.append('minSize', minSize);
+            if (maxSize) params.append('maxSize', maxSize);
+            if (wildcard) params.append('wildcard', wildcard);
+            if (context) params.append('context', context);
+            params.append('limit', limit);
+            
+            try {
+                showResult(resultDiv, 'Performing advanced search...', '');
+                const response = await fetch(`${API_BASE}/files/search/advanced?${params.toString()}`);
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showResult(resultDiv, `
+                        <h3>🔍 Advanced Search Results:</h3>
+                        <p>Found ${result.count} files</p>
+                        <h4>Search Criteria:</h4>
+                        <ul>
+                            <li><strong>Query:</strong> ${result.searchCriteria.query || 'None'}</li>
+                            <li><strong>Extensions:</strong> ${result.searchCriteria.extensions ? result.searchCriteria.extensions.join(', ') : 'None'}</li>
+                            <li><strong>Size Range:</strong> ${result.searchCriteria.minSize || 'Any'} - ${result.searchCriteria.maxSize || 'Any'} bytes</li>
+                            <li><strong>Wildcard:</strong> ${result.searchCriteria.wildcardPattern || 'None'}</li>
+                            <li><strong>Context:</strong> ${result.searchCriteria.context || 'None'}</li>
+                            <li><strong>Limit:</strong> ${result.searchCriteria.limit}</li>
+                        </ul>
+                        <h4>Results:</h4>
+                        ${result.results.length > 0 ? `
+                            <ul>
+                                ${result.results.map(file => 
+                                    `<li>
+                                        <strong>${file.fileName}</strong> (ID: ${file.id})<br>
+                                        Path: ${file.filePath}<br>
+                                        Size: ${file.fileSize} bytes | Type: ${file.mimeType}<br>
+                                        Created: ${file.createdAt}<br>
+                                        Updated: ${file.updatedAt}
+                                    </li>`
+                                ).join('')}
+                            </ul>
+                        ` : '<p>No files found matching the criteria.</p>'}
+                    `, 'success');
+                } else {
+                    showResult(resultDiv, `Advanced Search Error: ${result.error || 'Search failed'}`, 'error');
+                }
+            } catch (error) {
+                showResult(resultDiv, `Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function getFileStatistics() {
+            const resultDiv = document.getElementById('statsResult');
+            
+            try {
+                showResult(resultDiv, 'Getting file statistics...', '');
+                const response = await fetch(`${API_BASE}/files/statistics`);
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    const stats = result.statistics;
+                    showResult(resultDiv, `
+                        <h3>📊 File Statistics:</h3>
+                        <p><strong>Generated At:</strong> ${result.generatedAt}</p>
+                        
+                        <h4>Overview:</h4>
+                        <ul>
+                            <li><strong>Total Files:</strong> ${stats.totalFiles || 0}</li>
+                            <li><strong>Total Size:</strong> ${formatBytes(stats.totalSize || 0)}</li>
+                        </ul>
+                        
+                        ${stats.fileTypeDistribution ? `
+                            <h4>File Types:</h4>
+                            <ul>
+                                ${Object.entries(stats.fileTypeDistribution).map(([type, count]) => 
+                                    `<li><strong>${type}:</strong> ${count} files</li>`
+                                ).join('')}
+                            </ul>
+                        ` : ''}
+                        
+                        ${stats.extensionDistribution ? `
+                            <h4>File Extensions:</h4>
+                            <ul>
+                                ${Object.entries(stats.extensionDistribution).map(([ext, count]) => 
+                                    `<li><strong>${ext || 'No extension'}:</strong> ${count} files</li>`
+                                ).join('')}
+                            </ul>
+                        ` : ''}
+                        
+                        ${stats.sizeStatistics ? `
+                            <h4>Size Statistics:</h4>
+                            <ul>
+                                <li><strong>Smallest File:</strong> ${formatBytes(stats.sizeStatistics.min || 0)}</li>
+                                <li><strong>Largest File:</strong> ${formatBytes(stats.sizeStatistics.max || 0)}</li>
+                                <li><strong>Average Size:</strong> ${formatBytes(stats.sizeStatistics.avg || 0)}</li>
+                            </ul>
+                        ` : ''}
+                        
+                        ${stats.temporalDistribution ? `
+                            <h4>Files by Date:</h4>
+                            <ul>
+                                ${Object.entries(stats.temporalDistribution).map(([date, count]) => 
+                                    `<li><strong>${date}:</strong> ${count} files</li>`
+                                ).join('')}
+                            </ul>
+                        ` : ''}
+                    `, 'success');
+                } else {
+                    showResult(resultDiv, `Statistics Error: ${result.error || 'Failed to get statistics'}`, 'error');
+                }
+            } catch (error) {
+                showResult(resultDiv, `Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        async function downloadFile() {
+            const fileId = document.getElementById('downloadFileId').value;
+            const resultDiv = document.getElementById('downloadResult');
+            
+            if (!fileId) {
+                showResult(resultDiv, 'Please enter a file ID', 'error');
+                return;
+            }
+            
+            try {
+                showResult(resultDiv, 'Initiating download...', '');
+                
+                // Create a link and trigger download
+                const downloadUrl = `${API_BASE}/files/download/${encodeURIComponent(fileId)}`;
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = ''; // Let the server determine filename
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showResult(resultDiv, `
+                    <h3>📥 Download Initiated</h3>
+                    <p>File ID: ${fileId}</p>
+                    <p>Check your downloads folder for the file.</p>
+                `, 'success');
+            } catch (error) {
+                showResult(resultDiv, `Error downloading file: ${error.message}`, 'error');
+            }
+        }
+        
+        async function streamDownloadFile() {
+            const fileId = document.getElementById('downloadFileId').value;
+            const resultDiv = document.getElementById('downloadResult');
+            
+            if (!fileId) {
+                showResult(resultDiv, 'Please enter a file ID', 'error');
+                return;
+            }
+            
+            try {
+                showResult(resultDiv, 'Initiating streaming download...', '');
+                
+                // Create a link and trigger stream download
+                const downloadUrl = `${API_BASE}/files/download/stream/${encodeURIComponent(fileId)}`;
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = ''; // Let the server determine filename
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showResult(resultDiv, `
+                    <h3>📥 Streaming Download Initiated</h3>
+                    <p>File ID: ${fileId}</p>
+                    <p>Stream download supports large files and partial content.</p>
+                `, 'success');
+            } catch (error) {
+                showResult(resultDiv, `Error downloading file: ${error.message}`, 'error');
+            }
+        }
+        
+        async function getFileMetadata() {
+            const fileId = document.getElementById('metadataFileId').value;
+            const resultDiv = document.getElementById('metadataResult');
+            
+            if (!fileId) {
+                showResult(resultDiv, 'Please enter a file ID', 'error');
+                return;
+            }
+            
+            try {
+                showResult(resultDiv, 'Retrieving metadata...', '');
+                const response = await fetch(`${API_BASE}/files/metadata/${encodeURIComponent(fileId)}`);
+                const result = await response.json();
+                
+                if (response.ok && result.Success) {
+                    const metadata = result.Metadata;
+                    showResult(resultDiv, `
+                        <h3>📄 File Metadata</h3>
+                        <div style="font-family: monospace; background: #f5f5f5; padding: 10px; border-radius: 5px;">
+                            <p><strong>ID:</strong> ${metadata.Id}</p>
+                            <p><strong>File Name:</strong> ${metadata.FileName}</p>
+                            <p><strong>Original Path:</strong> ${metadata.OriginalPath}</p>
+                            <p><strong>Storage Path:</strong> ${metadata.StoragePath}</p>
+                            <p><strong>File Size:</strong> ${formatBytes(metadata.FileSize)}</p>
+                            <p><strong>MIME Type:</strong> ${metadata.MimeType}</p>
+                            <p><strong>Checksum:</strong> ${metadata.Checksum || 'N/A'}</p>
+                            <p><strong>Status:</strong> ${metadata.Status}</p>
+                            <p><strong>Created:</strong> ${new Date(metadata.CreatedAt).toLocaleString()}</p>
+                            <p><strong>Last Modified:</strong> ${metadata.LastModified ? new Date(metadata.LastModified).toLocaleString() : 'N/A'}</p>
+                            <p><strong>Processed:</strong> ${metadata.ProcessedAt ? new Date(metadata.ProcessedAt).toLocaleString() : 'N/A'}</p>
+                            <p><strong>Version:</strong> ${metadata.Version}</p>
+                            ${metadata.Description ? `<p><strong>Description:</strong> ${metadata.Description}</p>` : ''}
+                            ${metadata.Tags && metadata.Tags.length > 0 ? `<p><strong>Tags:</strong> ${metadata.Tags.join(', ')}</p>` : ''}
+                            ${metadata.Categories && metadata.Categories.length > 0 ? `<p><strong>Categories:</strong> ${metadata.Categories.join(', ')}</p>` : ''}
+                            ${metadata.Metadata && Object.keys(metadata.Metadata).length > 0 ? `
+                                <p><strong>Additional Metadata:</strong></p>
+                                <pre>${JSON.stringify(metadata.Metadata, null, 2)}</pre>
+                            ` : ''}
+                        </div>
+                    `, 'success');
+                } else if (response.status === 404) {
+                    showResult(resultDiv, `File with ID "${fileId}" not found`, 'error');
+                } else {
+                    showResult(resultDiv, `Error retrieving metadata: ${result.Error || result.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                showResult(resultDiv, `Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function getBatchMetadata() {
+            const fileIdsText = document.getElementById('batchFileIds').value;
+            const resultDiv = document.getElementById('batchMetadataResult');
+            
+            if (!fileIdsText.trim()) {
+                showResult(resultDiv, 'Please enter file IDs (one per line)', 'error');
+                return;
+            }
+            
+            const fileIds = fileIdsText.trim().split('\n').map(id => id.trim()).filter(id => id);
+            
+            if (fileIds.length === 0) {
+                showResult(resultDiv, 'No valid file IDs provided', 'error');
+                return;
+            }
+            
+            if (fileIds.length > 100) {
+                showResult(resultDiv, 'Maximum 100 file IDs allowed', 'error');
+                return;
+            }
+            
+            try {
+                showResult(resultDiv, `Retrieving metadata for ${fileIds.length} files...`, '');
+                const response = await fetch(`${API_BASE}/files/metadata/batch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ FileIds: fileIds })
+                });
+                const result = await response.json();
+                
+                if (response.ok && result.Success) {
+                    showResult(resultDiv, `
+                        <h3>📄 Batch Metadata Results</h3>
+                        <p><strong>Requested:</strong> ${result.RequestedCount} files</p>
+                        <p><strong>Found:</strong> ${result.FoundCount} files</p>
+                        ${result.NotFoundIds && result.NotFoundIds.length > 0 ? `
+                            <p><strong>Not Found:</strong> ${result.NotFoundIds.length} files</p>
+                            <details>
+                                <summary>Not Found IDs</summary>
+                                <ul>
+                                    ${result.NotFoundIds.map(id => `<li>${id}</li>`).join('')}
+                                </ul>
+                            </details>
+                        ` : ''}
+                        
+                        ${result.Metadata && result.Metadata.length > 0 ? `
+                            <h4>Found Files:</h4>
+                            ${result.Metadata.map(metadata => `
+                                <div style="border: 1px solid #ddd; margin: 10px 0; padding: 10px; border-radius: 5px;">
+                                    <p><strong>${metadata.FileName}</strong> (${formatBytes(metadata.FileSize)})</p>
+                                    <p><small>ID: ${metadata.Id}</small></p>
+                                    <p><small>Status: ${metadata.Status}</small></p>
+                                    <p><small>Created: ${new Date(metadata.CreatedAt).toLocaleString()}</small></p>
+                                </div>
+                            `).join('')}
+                        ` : '<p>No metadata found</p>'}
+                        
+                        <p><small>Retrieved at: ${result.RetrievedAt}</small></p>
+                    `, 'success');
+                } else {
+                    showResult(resultDiv, `Error retrieving batch metadata: ${result.Error || result.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                showResult(resultDiv, `Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function getPipelineStatus() {
+            const resultDiv = document.getElementById('statusResult');
+            
+            try {
+                showResult(resultDiv, 'Getting status...', '');
+                const response = await fetch(`${API_BASE}/files/pipeline/status`);
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showResult(resultDiv, `
+                        <h3>⚙️ Pipeline Status:</h3>
+                        <p><strong>Enabled:</strong> ${result.pipelineEnabled ? 'Yes' : 'No'}</p>
+                        <p><strong>Available Steps:</strong></p>
+                        <ul>
+                            ${result.availableSteps.map(step => `<li>${step}</li>`).join('')}
+                        </ul>
+                        <p><strong>Timestamp:</strong> ${result.timestamp}</p>
+                    `, 'success');
+                } else {
+                    showResult(resultDiv, 'Status check failed', 'error');
+                }
+            } catch (error) {
+                showResult(resultDiv, `Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function showResult(div, html, className) {
+            div.innerHTML = html;
+            div.className = `result ${className}`;
+            div.style.display = 'block';
+        }
+        
+        // Bucket Management Functions
+        async function listBuckets() {
+            const resultDiv = document.getElementById('bucketsResult');
+            
+            try {
+                showResult(resultDiv, 'Loading buckets...', '');
+                const response = await fetch(`${API_BASE}/buckets`);
+                const result = await response.json();
+                
+                if (response.ok && result.Success) {
+                    const buckets = result.Buckets || [];
+                    showResult(resultDiv, `
+                        <h3>🗄️ Available Buckets:</h3>
+                        <ul>
+                            ${buckets.map(bucket => `
+                                <li>
+                                    <strong>${bucket.Name}</strong> 
+                                    <span style="color: #666;">(${bucket.Type})</span>
+                                    <br>
+                                    <small>${bucket.Description}</small>
+                                </li>
+                            `).join('')}
+                        </ul>
+                        <p><em>Total: ${buckets.length} buckets</em></p>
+                        <p><small>Retrieved at: ${result.Timestamp}</small></p>
+                    `, 'success');
+                } else {
+                    showResult(resultDiv, `Error listing buckets: ${result.Error || result.error || 'Failed to load'}`, 'error');
+                }
+            } catch (error) {
+                showResult(resultDiv, `Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function getBucketStatus() {
+            const bucketName = document.getElementById('bucketName').value;
+            const resultDiv = document.getElementById('bucketStatusResult');
+            
+            if (!bucketName) {
+                showResult(resultDiv, 'Please enter a bucket name', 'error');
+                return;
+            }
+            
+            try {
+                showResult(resultDiv, 'Checking bucket status...', '');
+                const response = await fetch(`${API_BASE}/buckets/${encodeURIComponent(bucketName)}/status`);
+                const result = await response.json();
+                
+                if (response.ok && result.Success) {
+                    showResult(resultDiv, `
+                        <h3>📊 Bucket Status: ${result.BucketName}</h3>
+                        <ul>
+                            <li><strong>Exists:</strong> ${result.Exists ? 'Yes' : 'No'}</li>
+                            <li><strong>File Count:</strong> ${result.FileCount || 0}</li>
+                            <li><strong>Type:</strong> ${result.Type || 'Unknown'}</li>
+                            <li><strong>Description:</strong> ${result.Description || 'N/A'}</li>
+                        </ul>
+                        ${result.Files && result.Files.length > 0 ? `
+                            <h4>Recent Files (preview):</h4>
+                            <ul>
+                                ${result.Files.map(file => `<li>${file}</li>`).join('')}
+                            </ul>
+                        ` : '<p><em>No files in bucket</em></p>'}
+                        <p><small>Retrieved at: ${result.Timestamp}</small></p>
+                    `, 'success');
+                } else if (response.status === 404) {
+                    showResult(resultDiv, `Bucket "${bucketName}" does not exist`, 'error');
+                } else {
+                    showResult(resultDiv, `Error getting bucket status: ${result.Error || result.error || 'Failed to get status'}`, 'error');
+                }
+            } catch (error) {
+                showResult(resultDiv, `Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function createBucket() {
+            const bucketName = document.getElementById('newBucketName').value;
+            const resultDiv = document.getElementById('createBucketResult');
+            
+            if (!bucketName) {
+                showResult(resultDiv, 'Please enter a bucket name', 'error');
+                return;
+            }
+            
+            try {
+                showResult(resultDiv, 'Creating bucket...', '');
+                const response = await fetch(`${API_BASE}/buckets/${encodeURIComponent(bucketName)}`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (response.ok && result.Success) {
+                    showResult(resultDiv, `
+                        <h3>✅ Bucket Created Successfully!</h3>
+                        <p><strong>Bucket Name:</strong> ${result.BucketName}</p>
+                        <p><strong>Message:</strong> ${result.Message || 'Bucket created successfully'}</p>
+                        <p><small>Created at: ${result.CreatedAt}</small></p>
+                    `, 'success');
+                    document.getElementById('newBucketName').value = '';
+                } else if (response.status === 409) {
+                    showResult(resultDiv, `Bucket "${bucketName}" already exists`, 'error');
+                } else {
+                    showResult(resultDiv, `Error creating bucket: ${result.Error || result.error || 'Creation failed'}`, 'error');
+                }
+            } catch (error) {
+                showResult(resultDiv, `Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function listBucketFiles() {
+            const bucketName = document.getElementById('listBucketName').value;
+            const prefix = document.getElementById('listBucketPrefix').value;
+            const resultDiv = document.getElementById('bucketFilesResult');
+            
+            if (!bucketName) {
+                showResult(resultDiv, 'Please enter a bucket name', 'error');
+                return;
+            }
+            
+            try {
+                showResult(resultDiv, 'Loading files...', '');
+                let url = `${API_BASE}/buckets/${encodeURIComponent(bucketName)}/files`;
+                if (prefix) {
+                    url += `?prefix=${encodeURIComponent(prefix)}`;
+                }
+                
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                if (response.ok && result.Success) {
+                    const files = result.Files || [];
+                    showResult(resultDiv, `
+                        <h3>📁 Files in Bucket: ${result.BucketName}</h3>
+                        ${result.Prefix ? `<p><strong>Prefix:</strong> ${result.Prefix}</p>` : ''}
+                        ${files.length > 0 ? `
+                            <ul>
+                                ${files.map(file => `<li>${file}</li>`).join('')}
+                            </ul>
+                            <p><em>Showing: ${result.Count} files (Total: ${result.TotalFiles})</em></p>
+                            ${result.Limit && result.TotalFiles > result.Limit ? `<p><small>Limited to ${result.Limit} files</small></p>` : ''}
+                        ` : '<p>No files found in this bucket.</p>'}
+                        <p><small>Retrieved at: ${result.Timestamp}</small></p>
+                    `, 'success');
+                } else if (response.status === 404) {
+                    showResult(resultDiv, `Bucket "${bucketName}" does not exist`, 'error');
+                } else {
+                    showResult(resultDiv, `Error listing files: ${result.Error || result.error || 'Failed to load files'}`, 'error');
+                }
+            } catch (error) {
+                showResult(resultDiv, `Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function getBucketConfiguration() {
+            const resultDiv = document.getElementById('bucketConfigResult');
+            
+            try {
+                showResult(resultDiv, 'Loading configuration...', '');
+                const response = await fetch(`${API_BASE}/buckets/config`);
+                const result = await response.json();
+                
+                if (response.ok && result.Success) {
+                    const defaultBuckets = result.DefaultBuckets || {};
+                    const namingRules = result.BucketNamingRules || [];
+                    showResult(resultDiv, `
+                        <h3>⚙️ Bucket Configuration:</h3>
+                        <h4>Default Buckets:</h4>
+                        <ul>
+                            ${Object.entries(defaultBuckets).map(([key, bucket]) => `
+                                <li><strong>${bucket.Name}:</strong> ${bucket.Purpose} ${bucket.AutoCreate ? '(Auto-create)' : ''}</li>
+                            `).join('')}
+                        </ul>
+                        <h4>Bucket Naming Rules:</h4>
+                        <ul>
+                            ${namingRules.map(rule => `<li>${rule}</li>`).join('')}
+                        </ul>
+                        <h4>Limitations:</h4>
+                        <ul>
+                            <li><strong>Max File Size:</strong> ${result.MaxFileSize}</li>
+                            <li><strong>Streaming Support:</strong> ${result.StreamingSupport ? 'Yes' : 'No'}</li>
+                        </ul>
+                        <p><small>Retrieved at: ${result.Timestamp}</small></p>
+                    `, 'success');
+                } else {
+                    showResult(resultDiv, `Error loading configuration: ${result.Error || result.error || 'Failed to load'}`, 'error');
+                }
+            } catch (error) {
+                showResult(resultDiv, `Network Error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

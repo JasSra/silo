@@ -59,6 +59,7 @@ public enum FileStatus
     Pending,
     Scanning,
     Processing,
+    Processed,
     Indexed,
     Error,
     Quarantined,

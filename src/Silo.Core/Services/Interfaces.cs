@@ -15,12 +15,18 @@ public interface IStorageService
 
 public interface ISearchService
 {
-    Task IndexFileAsync(Models.FileMetadata fileMetadata);
+    Task<bool> IndexFileAsync(Models.FileMetadata fileMetadata);
+    Task<IEnumerable<Models.FileMetadata>> SearchFilesAsync(string query, int skip = 0, int take = 20);
     Task<IEnumerable<Models.FileMetadata>> SearchAsync(string query, int skip = 0, int take = 20);
     Task<IEnumerable<Models.FileMetadata>> SearchByTagsAsync(IEnumerable<string> tags, int skip = 0, int take = 20);
+    Task<Models.FileMetadata?> GetByIdAsync(Guid fileId);
     Task<bool> RemoveFromIndexAsync(Guid fileId);
+    Task<bool> DeleteFromIndexAsync(Guid fileId);
     Task<long> GetIndexSizeAsync();
-    Task UpdateFileMetadataAsync(Models.FileMetadata fileMetadata);
+    Task<bool> UpdateFileMetadataAsync(Models.FileMetadata fileMetadata);
+    Task<bool> UpdateIndexAsync(Models.FileMetadata fileMetadata);
+    Task<IEnumerable<Models.FileMetadata>> GetFilesByStatusAsync(Models.FileStatus status, int skip = 0, int take = 50);
+    Task<bool> InitializeIndexAsync();
 }
 
 public interface IScanService

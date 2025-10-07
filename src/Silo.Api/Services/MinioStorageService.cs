@@ -1,8 +1,6 @@
 using Minio;
 using Minio.DataModel.Args;
 using Silo.Core.Services;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace Silo.Api.Services;
 
@@ -144,9 +142,15 @@ public class MinioStorageService : IStorageService
         {
             var files = new List<string>();
             
-            await foreach (var item in _minioClient.ListObjectsAsync(new ListObjectsArgs()
-                .WithBucket(_bucketName)
-                .WithPrefix(prefix)))
+            var listArgs = new ListObjectsArgs()
+                .WithBucket(_bucketName);
+                
+            if (!string.IsNullOrEmpty(prefix))
+            {
+                listArgs = listArgs.WithPrefix(prefix);
+            }
+
+            await foreach (var item in _minioClient.ListObjectsEnumAsync(listArgs))
             {
                 files.Add(item.Key);
             }

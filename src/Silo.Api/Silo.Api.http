@@ -1,4 +1,4 @@
-@Silo.Api_HostAddress = http://localhost:5115
+@Silo.Api_HostAddress = http://localhost:5289
 
 GET {{Silo.Api_HostAddress}}/weatherforecast/
 Accept: application/json

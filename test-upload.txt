@@ -1,0 +1,12 @@
+This is a test file for uploading to the Silo file management system.
+It contains some sample text to test the pipeline functionality.
+
+Test timestamp: 2025-10-07T01:23:54
+Pipeline steps to be executed:
+1. MalwareScanning - Check for malware
+2. FileStorage - Store in MinIO
+3. ThumbnailGeneration - Generate thumbnails if applicable
+4. FileIndexing - Index for search
+5. FileVersioning - Track file versions
+
+End of test file.

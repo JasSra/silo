@@ -30,7 +30,10 @@ services:
       /usr/bin/mc mb myminio/backups;
       /usr/bin/mc mb myminio/quarantine;
       /usr/bin/mc mb myminio/temp;
+      /usr/bin/mc mb myminio/versions;
+      /usr/bin/mc mb myminio/thumbnails;
       /usr/bin/mc policy set public myminio/files;
+      /usr/bin/mc policy set public myminio/thumbnails;
       exit 0;
       "
     networks:
@@ -84,21 +87,43 @@ services:
     networks:
       - silo-dev-network
 
-  # ClamAV for development (optional, can be disabled for faster startup)
+  # ClamAV for development with REST API
   clamav:
     image: clamav/clamav:latest
     container_name: silo-clamav-dev
     ports:
       - "3310:3310"
+    environment:
+      - CLAMD_CONF_TCPSocket=3310
+      - CLAMD_CONF_TCPAddr=0.0.0.0
+    volumes:
+      - clamav-dev-data:/var/lib/clamav
     profiles:
       - full  # Only start with --profile full
     networks:
       - silo-dev-network
 
-networks:
-  silo-dev-network:
-    driver: bridge
+  # ClamAV REST API wrapper (optional)
+  clamav-rest:
+    image: lokori/clamav-rest:latest
+    container_name: silo-clamav-rest-dev
+    ports:
+      - "8080:8080"
+    environment:
+      - CLAMD_HOST=clamav
+      - CLAMD_PORT=3310
+    depends_on:
+      - clamav
+    profiles:
+      - full  # Only start with --profile full
+    networks:
+      - silo-dev-network
 
 volumes:
   opensearch-dev-data:
   postgres-dev-data:
+  clamav-dev-data:
+
+networks:
+  silo-dev-network:
+    driver: bridge

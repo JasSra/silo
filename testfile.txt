@@ -1,0 +1,10 @@
+Hello World! This is a test file for the Silo pipeline system.
+It contains some sample text to test the file processing pipeline.
+We should see this file get processed through all pipeline steps:
+1. Malware Scanning
+2. File Storage
+3. Thumbnail Generation (if applicable)
+4. File Indexing
+5. File Versioning
+
+This file will test the complete end-to-end workflow!
