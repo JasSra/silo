@@ -38,12 +38,14 @@ A scalable, containerized .NET-based system for storing and indexing millions of
 - ✅ File sync agent with FileSystemWatcher
 - ✅ Multi-environment Docker support
 
-### AI-Powered Features (Planned)
-- 🚧 Automatic metadata extraction
-- 🚧 Content-based tagging
-- 🚧 Semantic search capabilities
-- 🚧 Intelligent file categorization
-- 🚧 Duplicate detection
+### AI-Powered Features ✅
+- ✅ Automatic metadata extraction using OpenAI GPT-4 Vision
+- ✅ Content-based tagging and categorization
+- ✅ Intelligent file analysis with confidence scoring
+- ✅ Background processing for large files via Hangfire
+- ✅ Fallback to local Ollama models when OpenAI unavailable
+- 🚧 Semantic search capabilities (OpenSearch integration ready)
+- 🚧 Advanced duplicate detection
 
 ### Enterprise Features (Planned)
 - 🚧 Authentication & authorization
@@ -183,6 +185,42 @@ dotnet publish -c Release
 | `SILO_POSTGRES_CONNECTION` | PostgreSQL connection | See `.env.dev` |
 | `SILO_MAX_FILE_SIZE` | Maximum file upload size | `100MB` |
 
+### AI Configuration
+
+To enable AI-powered metadata extraction, configure your OpenAI API key:
+
+1. **Development**: Update `src/Silo.Api/appsettings.Development.json`:
+   ```json
+   {
+     "AI": {
+       "Enabled": true,
+       "Provider": "OpenAI",
+       "OpenAI": {
+         "ApiKey": "your-openai-api-key-here"
+       }
+     }
+   }
+   ```
+
+2. **Production**: Use environment variables for security:
+   ```bash
+   export AI__OpenAI__ApiKey="your-openai-api-key-here"
+   ```
+
+3. **Fallback**: The system automatically falls back to Ollama when OpenAI is unavailable. Configure Ollama endpoint:
+   ```json
+   {
+     "AI": {
+       "Ollama": {
+         "Endpoint": "http://localhost:11434",
+         "Model": "llava:latest"
+       }
+     }
+   }
+   ```
+
+**Note**: Without a valid API key, AI features will run but skip metadata extraction with graceful error handling.
+
 ## Docker Configuration
 
 ### Development Environment
@@ -263,9 +301,9 @@ For support and questions:
 
 ## Roadmap
 
-- [ ] Complete MVP implementation
-- [ ] Add AI-powered metadata extraction
-- [ ] Implement semantic search
+- [x] Complete MVP implementation
+- [x] Add AI-powered metadata extraction
+- [ ] Implement semantic search with OpenSearch
 - [ ] Add web frontend
 - [ ] Mobile app support
 - [ ] Kubernetes deployment manifests
