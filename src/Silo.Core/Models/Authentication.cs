@@ -6,6 +6,8 @@ public class User
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     
+    public Guid? TenantId { get; set; }
+    
     [Required]
     [StringLength(100)]
     public string Username { get; set; } = string.Empty;
@@ -29,6 +31,11 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastLoginAt { get; set; }
     
+    // Security tracking
+    public int FailedLoginAttempts { get; set; } = 0;
+    public DateTime? LockedOutUntil { get; set; }
+    
+    public virtual Tenant? Tenant { get; set; }
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public virtual ICollection<UserSession> UserSessions { get; set; } = new List<UserSession>();
 }

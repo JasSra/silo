@@ -6,11 +6,13 @@ using StackExchange.Redis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System.Text;
 using Silo.Core.Services;
 using Silo.Core.Pipeline;
 using Silo.Core.Models;
+using Silo.Core.Data;
 using Silo.Core.Services.AI;
 using Silo.Api.Services;
 using Silo.Api.Services.Pipeline;
@@ -63,6 +65,13 @@ builder.Services.AddSingleton(provider =>
 
     var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
     return dataSourceBuilder.Build();
+});
+
+// Configure DbContext
+builder.Services.AddDbContext<SiloDbContext>((provider, options) =>
+{
+    var dataSource = provider.GetRequiredService<NpgsqlDataSource>();
+    options.UseNpgsql(dataSource, b => b.MigrationsAssembly("Silo.Api"));
 });
 
 // Configure Redis for Hangfire
