@@ -215,6 +215,14 @@ builder.Services.AddScoped<FileSyncService>();
 builder.Services.AddScoped<BackupService>();
 builder.Services.AddScoped<IFileVersioningService, FileVersioningService>();
 builder.Services.AddScoped<ThumbnailService>();
+
+// Register tenant-aware services
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ITenantContextProvider, HttpTenantContextProvider>();
+builder.Services.AddScoped<ITenantStorageService, TenantMinioStorageService>();
+builder.Services.AddScoped<TenantOpenSearchIndexingService>();
+builder.Services.AddScoped<IQuotaService, QuotaService>();
+builder.Services.Configure<TenantBucketConfiguration>(builder.Configuration.GetSection("TenantBuckets"));
 builder.Services.AddScoped<IClamAvService>(serviceProvider =>
 {
     var logger = serviceProvider.GetRequiredService<ILogger<ClamAvService>>();
