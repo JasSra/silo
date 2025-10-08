@@ -10,6 +10,7 @@ namespace Silo.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize] // Require authentication for all endpoints
 public class FilesController : ControllerBase
 {
     private readonly PipelineOrchestrator _pipelineOrchestrator;
@@ -33,6 +34,7 @@ public class FilesController : ControllerBase
     }
 
     [HttpPost("upload")]
+    [Authorize(Policy = "FilesUpload")]
     public async Task<IActionResult> UploadFile(IFormFile file, CancellationToken cancellationToken)
     {
         if (file == null || file.Length == 0)
@@ -142,6 +144,7 @@ public class FilesController : ControllerBase
     }
 
     [HttpGet("search")]
+    [Authorize(Policy = "FilesRead")]
     public async Task<IActionResult> SearchFiles(string query, int page = 1, int size = 20, CancellationToken cancellationToken = default)
     {
         try
@@ -157,6 +160,7 @@ public class FilesController : ControllerBase
     }
 
     [HttpGet("{fileName}/download")]
+    [Authorize(Policy = "FilesDownload")]
     public async Task<IActionResult> DownloadFile(string fileName, CancellationToken cancellationToken = default)
     {
         try

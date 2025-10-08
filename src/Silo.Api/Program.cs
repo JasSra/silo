@@ -4,6 +4,7 @@ using Hangfire;
 using Hangfire.Redis.StackExchange;
 using StackExchange.Redis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
@@ -111,7 +112,45 @@ builder.Services.AddAuthentication(options =>
     .AddScheme<Silo.Api.Middleware.ApiKeyAuthenticationOptions, Silo.Api.Middleware.ApiKeyAuthenticationHandler>(
         Silo.Api.Middleware.ApiKeyAuthenticationOptions.DefaultSchemeName, options => { });
 
-builder.Services.AddAuthorization();
+// Configure authorization with policies
+builder.Services.AddAuthorization(options =>
+{
+    // File operation policies
+    options.AddPolicy("FilesRead", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.PermissionRequirement("files:read")));
+    
+    options.AddPolicy("FilesWrite", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.PermissionRequirement("files:write")));
+    
+    options.AddPolicy("FilesDelete", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.PermissionRequirement("files:delete")));
+    
+    options.AddPolicy("FilesUpload", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.PermissionRequirement("files:upload")));
+    
+    options.AddPolicy("FilesDownload", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.PermissionRequirement("files:download")));
+
+    // User management policies
+    options.AddPolicy("UsersManage", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.PermissionRequirement("users:manage")));
+
+    // Role-based policies
+    options.AddPolicy("AdminOnly", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.RoleRequirement("Administrator")));
+    
+    options.AddPolicy("FileManagerOrAdmin", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.RoleRequirement("Administrator", "FileManager")));
+
+    // Tenant policies
+    options.AddPolicy("RequireTenant", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.TenantRequirement(true)));
+});
+
+// Register authorization handlers
+builder.Services.AddSingleton<IAuthorizationHandler, Silo.Api.Authorization.PermissionHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, Silo.Api.Authorization.RoleHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, Silo.Api.Authorization.TenantHandler>();
 
 // Configure Rate Limiting
 builder.Services.AddMemoryCache();
