@@ -42,6 +42,7 @@ public class AIMetadataServiceFactory : IAIMetadataServiceFactory
             {
                 AIProvider.OpenAI => _serviceProvider.GetRequiredService<OpenAIMetadataService>(),
                 AIProvider.Ollama => _serviceProvider.GetRequiredService<OllamaMetadataService>(),
+                AIProvider.AzureOpenAI => _serviceProvider.GetRequiredService<AzureOpenAIMetadataService>(),
                 _ => throw new InvalidOperationException($"Unsupported AI provider: {_config.Provider}")
             };
 

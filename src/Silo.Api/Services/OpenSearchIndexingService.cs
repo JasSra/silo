@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using OpenSearch.Client;
 using OpenSearch.Net;
 
@@ -381,6 +382,16 @@ public class OpenSearchIndexingService : IOpenSearchIndexingService
 
             // Convert from OpenSearch FileMetadata to Core FileMetadata
             var openSearchFile = response.Source;
+            var metadata = openSearchFile.Metadata != null
+                ? new Dictionary<string, object>(openSearchFile.Metadata)
+                : new Dictionary<string, object>();
+
+            var checksum = metadata.TryGetValue("checksum", out var checksumValue) && checksumValue is string checksumString
+                ? checksumString
+                : metadata.TryGetValue("hash_sha256", out var hashValue) && hashValue is string hashString
+                    ? hashString
+                    : string.Empty;
+
             var coreFileMetadata = new Silo.Core.Models.FileMetadata
             {
                 Id = Guid.TryParse(openSearchFile.Id, out var parsedId) ? parsedId : Guid.Empty,
@@ -389,12 +400,12 @@ public class OpenSearchIndexingService : IOpenSearchIndexingService
                 StoragePath = openSearchFile.FilePath,
                 FileSize = openSearchFile.FileSize,
                 MimeType = openSearchFile.MimeType,
-                Checksum = string.Empty, // Not stored in OpenSearch FileMetadata
+                Checksum = checksum,
                 Status = Silo.Core.Models.FileStatus.Indexed, // Assume indexed if in index
                 CreatedAt = openSearchFile.CreatedAt,
                 LastModified = openSearchFile.UpdatedAt,
                 Tags = new List<string>(), // Default empty
-                Metadata = openSearchFile.Metadata ?? new Dictionary<string, object>()
+                Metadata = metadata
             };
 
             _logger.LogInformation("Successfully retrieved file: {FileId}", fileId);

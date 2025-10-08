@@ -6,6 +6,7 @@ using StackExchange.Redis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
+using Npgsql;
 using System.Text;
 using Silo.Core.Services;
 using Silo.Core.Pipeline;
@@ -47,6 +48,21 @@ builder.Services.AddSingleton<OpenSearchClient>(provider =>
         .ThrowExceptions();
     
     return new OpenSearchClient(settings);
+});
+
+// Configure PostgreSQL data source
+builder.Services.AddSingleton(provider =>
+{
+    var configuration = provider.GetRequiredService<IConfiguration>();
+    var connectionString = configuration.GetConnectionString("Database");
+
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        throw new InvalidOperationException("Database connection string is not configured.");
+    }
+
+    var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+    return dataSourceBuilder.Build();
 });
 
 // Configure Redis for Hangfire
@@ -108,9 +124,12 @@ builder.Services.AddScoped<IStorageService, MinioStorageService>();
 builder.Services.AddScoped<IMinioStorageService, MinioStorageServiceImpl>();
 builder.Services.AddScoped<IOpenSearchIndexingService, OpenSearchIndexingService>();
 builder.Services.AddScoped<ISearchService, SearchServiceAdapter>();
+builder.Services.AddSingleton<IFileHashIndex, PostgresFileHashIndex>();
 
 // Register pipeline services
 builder.Services.AddScoped<PipelineOrchestrator>();
+builder.Services.AddScoped<IPipelineStep, FileHashingStep>();
+builder.Services.AddScoped<IPipelineStep, FileHashIndexingStep>();
 builder.Services.AddScoped<IPipelineStep, MalwareScanningStep>();
 builder.Services.AddScoped<IPipelineStep, FileStorageStep>();
 builder.Services.AddScoped<IPipelineStep, ThumbnailGenerationStep>();
@@ -119,6 +138,8 @@ builder.Services.AddScoped<IPipelineStep, FileIndexingStep>();
 builder.Services.AddScoped<IPipelineStep, FileVersioningStep>();
 
 // Register concrete pipeline step types for orchestrator
+builder.Services.AddScoped<FileHashingStep>();
+builder.Services.AddScoped<FileHashIndexingStep>();
 builder.Services.AddScoped<MalwareScanningStep>();
 builder.Services.AddScoped<FileStorageStep>();
 builder.Services.AddScoped<ThumbnailGenerationStep>();
@@ -158,8 +179,10 @@ builder.Services.Configure<AIConfiguration>(builder.Configuration.GetSection("AI
 // Register AI services
 builder.Services.AddHttpClient<OpenAIMetadataService>();
 builder.Services.AddHttpClient<OllamaMetadataService>();
+builder.Services.AddHttpClient<AzureOpenAIMetadataService>();
 builder.Services.AddScoped<OpenAIMetadataService>();
 builder.Services.AddScoped<OllamaMetadataService>();
+builder.Services.AddScoped<AzureOpenAIMetadataService>();
 builder.Services.AddScoped<IAIMetadataServiceFactory, AIMetadataServiceFactory>();
 
 // Register AI background jobs

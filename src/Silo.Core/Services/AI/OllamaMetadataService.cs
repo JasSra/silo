@@ -199,7 +199,10 @@ Focus on extracting meaningful metadata that would help with search and organiza
                 using var doc = JsonDocument.Parse(jsonContent);
                 var root = doc.RootElement;
 
-                var metadata = new Dictionary<string, object>();
+                var metadata = new Dictionary<string, object>
+                {
+                    ["provider"] = ProviderName
+                };
                 var tags = new List<string>();
 
                 if (root.TryGetProperty("metadata", out var metadataElement))

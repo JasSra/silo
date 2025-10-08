@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Silo.Core.Services;
 using Silo.Core.Models;
 
@@ -27,8 +28,14 @@ public class SearchServiceAdapter : ISearchService
                 FileSize = fileMetadata.FileSize,
                 MimeType = fileMetadata.MimeType,
                 CreatedAt = fileMetadata.CreatedAt,
-                UpdatedAt = fileMetadata.LastModified ?? fileMetadata.CreatedAt
+                UpdatedAt = fileMetadata.LastModified ?? fileMetadata.CreatedAt,
+                Metadata = new Dictionary<string, object>(fileMetadata.Metadata)
             };
+
+            if (!string.IsNullOrWhiteSpace(fileMetadata.Checksum))
+            {
+                apiFileMetadata.Metadata["checksum"] = fileMetadata.Checksum;
+            }
 
             await _indexingService.IndexFileAsync(apiFileMetadata);
             return true;
@@ -158,6 +165,16 @@ public class SearchServiceAdapter : ISearchService
 
     private static Core.Models.FileMetadata ConvertToCoreFileMetadata(Api.Services.FileMetadata apiMetadata)
     {
+        var metadata = apiMetadata.Metadata != null
+            ? new Dictionary<string, object>(apiMetadata.Metadata)
+            : new Dictionary<string, object>();
+
+        var checksum = metadata.TryGetValue("checksum", out var checksumValue) && checksumValue is string checksumString
+            ? checksumString
+            : metadata.TryGetValue("hash_sha256", out var hashValue) && hashValue is string hashString
+                ? hashString
+                : string.Empty;
+
         return new Core.Models.FileMetadata
         {
             Id = Guid.Parse(apiMetadata.Id),
@@ -168,6 +185,8 @@ public class SearchServiceAdapter : ISearchService
             MimeType = apiMetadata.MimeType,
             CreatedAt = apiMetadata.CreatedAt,
             LastModified = apiMetadata.UpdatedAt,
+            Metadata = metadata,
+            Checksum = checksum,
             Status = FileStatus.Processed // Default status
         };
     }

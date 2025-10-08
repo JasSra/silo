@@ -43,7 +43,8 @@ public enum AIProvider
 {
     None,
     OpenAI,
-    Ollama
+    Ollama,
+    AzureOpenAI
 }
 
 public class AIConfiguration
@@ -52,6 +53,7 @@ public class AIConfiguration
     public bool Enabled { get; set; } = false;
     public OpenAIConfiguration? OpenAI { get; set; }
     public OllamaConfiguration? Ollama { get; set; }
+    public AzureOpenAIConfiguration? AzureOpenAI { get; set; }
     public int MaxFileSizeForAnalysis { get; set; } = 10 * 1024 * 1024; // 10MB
     public string[] SupportedMimeTypes { get; set; } = 
     {
@@ -77,6 +79,17 @@ public class OllamaConfiguration
     public string BaseUrl { get; set; } = "http://localhost:11434";
     public string Model { get; set; } = "llama3";
     public string VisionModel { get; set; } = "llava";
+    public int MaxTokens { get; set; } = 1000;
+    public double Temperature { get; set; } = 0.1;
+}
+
+public class AzureOpenAIConfiguration
+{
+    public string Endpoint { get; set; } = string.Empty; // e.g., https://your-resource.openai.azure.com
+    public string ApiKey { get; set; } = string.Empty;
+    public string Deployment { get; set; } = "gpt-4o"; // for text/vision
+    public string TextDeployment { get; set; } = "gpt-4o-mini";
+    public string ApiVersion { get; set; } = "2024-06-01";
     public int MaxTokens { get; set; } = 1000;
     public double Temperature { get; set; } = 0.1;
 }

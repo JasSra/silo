@@ -128,9 +128,12 @@ public class FilesController : ControllerBase
             PipelineEnabled = true,
             AvailableSteps = new[]
             {
+                "FileHashing",
                 "MalwareScanning",
+                "FileHashIndexing",
                 "FileStorage", 
                 "ThumbnailGeneration",
+                "AIMetadataExtraction",
                 "FileIndexing",
                 "FileVersioning"
             },

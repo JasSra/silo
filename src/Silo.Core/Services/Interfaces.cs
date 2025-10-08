@@ -73,3 +73,9 @@ public interface INotificationService
     Task SendErrorNotificationAsync(string message, Exception? exception = null);
     Task SendHealthCheckNotificationAsync(string serviceName, bool isHealthy);
 }
+
+public interface IFileHashIndex
+{
+    Task<IReadOnlyCollection<Guid>> GetFileIdsAsync(string hash, CancellationToken cancellationToken = default);
+    Task AddOrUpdateAsync(string hash, Guid fileId, CancellationToken cancellationToken = default);
+}
