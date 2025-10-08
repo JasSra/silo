@@ -3,6 +3,10 @@ namespace Silo.Core.Models;
 public class BackupJob
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    
+    // Multi-tenant support
+    public Guid TenantId { get; set; }
+    
     public string Name { get; set; } = string.Empty;
     public BackupType Type { get; set; }
     public string SourcePath { get; set; } = string.Empty;

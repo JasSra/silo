@@ -6,6 +6,9 @@ public class FileMetadata
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     
+    // Multi-tenant support
+    public Guid TenantId { get; set; }
+    
     [Required]
     public string FileName { get; set; } = string.Empty;
     

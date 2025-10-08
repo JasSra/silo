@@ -17,6 +17,12 @@ public class SiloDbContext : DbContext
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<TenantApiKey> TenantApiKeys => Set<TenantApiKey>();
+    
+    // Tenant-scoped data models
+    public DbSet<FileMetadata> FileMetadata => Set<FileMetadata>();
+    public DbSet<BackupJob> BackupJobs => Set<BackupJob>();
+    public DbSet<FileVersion> FileVersions => Set<FileVersion>();
+    public DbSet<FileDiff> FileDiffs => Set<FileDiff>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -114,6 +120,56 @@ public class SiloDbContext : DbContext
                 .WithMany(t => t.ApiKeys)
                 .HasForeignKey(e => e.TenantId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // FileMetadata configuration (tenant-scoped)
+        modelBuilder.Entity<FileMetadata>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TenantId);
+            entity.HasIndex(e => new { e.TenantId, e.Checksum });
+            entity.HasIndex(e => new { e.TenantId, e.FileName });
+            entity.Ignore(e => e.Metadata); // Ignore dictionary
+            entity.Ignore(e => e.Tags); // Ignore list
+            entity.Ignore(e => e.Categories); // Ignore list
+            entity.Ignore(e => e.ScanResult); // Ignore complex type for now
+        });
+
+        // BackupJob configuration (tenant-scoped)
+        modelBuilder.Entity<BackupJob>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TenantId);
+            entity.HasIndex(e => new { e.TenantId, e.Status });
+            entity.Ignore(e => e.Configuration); // Ignore dictionary for now
+        });
+
+        // FileVersion configuration (tenant-scoped)
+        modelBuilder.Entity<FileVersion>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TenantId);
+            entity.HasIndex(e => new { e.TenantId, e.FilePath });
+            entity.HasIndex(e => new { e.TenantId, e.FilePath, e.VersionNumber });
+            entity.Ignore(e => e.Metadata); // Ignore dictionary
+        });
+
+        // FileDiff configuration
+        modelBuilder.Entity<FileDiff>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.SourceVersionId, e.TargetVersionId });
+            entity.Ignore(e => e.DiffMetadata); // Ignore dictionary
+            
+            entity.HasOne(e => e.SourceVersion)
+                .WithMany(v => v.SourceDiffs)
+                .HasForeignKey(e => e.SourceVersionId)
+                .OnDelete(DeleteBehavior.Restrict);
+            
+            entity.HasOne(e => e.TargetVersion)
+                .WithMany(v => v.TargetDiffs)
+                .HasForeignKey(e => e.TargetVersionId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Seed default data
