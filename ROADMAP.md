@@ -174,14 +174,19 @@ Add tenant scopes to all storage models/services; partition MinIO buckets and Op
 
 ---
 
-## Phase 3 – Observability & Reliability 📋 NOT STARTED
+## Phase 3 – Observability & Reliability 🔄 IN PROGRESS
 
-### Status: 📋 Not Started (0% Complete)
+### Status: 🔄 In Progress (10% Complete)
 
 ### Objective:
 Instrument services with OpenTelemetry metrics/tracing/logs; replace static health check with dependency probes; add Hangfire job dashboards with alerts; define SLOs, error budgets, and on-call runbooks; integrate centralized logging/monitoring stack.
 
 ### High-Level Tasks:
+- [x] Basic health checks with dependency probes
+  - [x] PostgreSQL health check
+  - [x] Redis health check
+  - [x] Health endpoints: /health, /health/ready, /health/live
+- [ ] Advanced health checks (MinIO, OpenSearch, Hangfire)
 - [ ] OpenTelemetry instrumentation
 - [ ] Advanced health checks with dependency probes
 - [ ] Hangfire dashboard enhancements and alerting
@@ -255,12 +260,12 @@ Track usage per tenant, integrate with a billing provider (e.g., Stripe), and en
 |-------|--------|------------|------------------|
 | **Phase 1** | ✅ Complete | 100% | Auth, RBAC, Rate Limiting, API Keys |
 | **Phase 2** | 🔄 In Progress | 95% | Multi-tenant data layer, admin tooling, quotas |
-| **Phase 3** | 📋 Not Started | 0% | Observability & reliability |
+| **Phase 3** | 🔄 In Progress | 10% | Observability & reliability |
 | **Phase 4** | 📋 Not Started | 0% | CI/CD & infrastructure |
 | **Phase 5** | 📋 Not Started | 0% | UI & customer experience |
 | **Phase 6** | 📋 Not Started | 0% | Billing & compliance |
 
-**Overall Project Completion: ~33% (1.95 of 6 phases complete)**
+**Overall Project Completion: ~35% (1.95 + 0.1 of 6 phases complete)**
 
 ---
 
