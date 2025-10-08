@@ -290,6 +290,17 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
+// Add health checks
+builder.Services.AddHealthChecks()
+    .AddNpgSql(
+        builder.Configuration.GetConnectionString("DefaultConnection") ?? "Host=localhost;Database=silo;Username=postgres;Password=postgres",
+        name: "database",
+        tags: new[] { "db", "sql", "postgres" })
+    .AddRedis(
+        builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379",
+        name: "redis",
+        tags: new[] { "cache", "redis" });
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -318,23 +329,44 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
 
 app.MapControllers();
 
-// Health check endpoint
-app.MapGet("/health", (IStorageService storageService, ISearchService searchService) =>
+// Health check endpoints
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
-    var healthStatus = new
+    Predicate = _ => true,
+    ResponseWriter = async (context, report) =>
     {
-        Status = "Healthy",
-        Timestamp = DateTime.UtcNow,
-        Services = new
+        context.Response.ContentType = "application/json";
+        var response = new
         {
-            Storage = "OK",
-            Search = "OK",
-            Background = "OK",
-            Pipeline = "OK"
-        }
-    };
-    
-    return Results.Ok(healthStatus);
+            status = report.Status.ToString(),
+            timestamp = DateTime.UtcNow,
+            duration = report.TotalDuration,
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                duration = e.Value.Duration,
+                tags = e.Value.Tags
+            })
+        };
+        await context.Response.WriteAsJsonAsync(response);
+    }
+});
+
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("db") || check.Tags.Contains("cache"),
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new { status = report.Status.ToString() });
+    }
+});
+
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false // Only application liveness
 });
 
 // Initialize services
