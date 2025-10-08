@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System.Text;
+using AspNetCoreRateLimit;
 using Silo.Core.Services;
 using Silo.Core.Pipeline;
 using Silo.Core.Models;
@@ -89,7 +90,11 @@ if (string.IsNullOrEmpty(jwtSecretKey))
     throw new InvalidOperationException("JWT secret key is not configured");
 }
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -102,9 +107,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration.GetValue<string>("Authentication:JwtAudience"),
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey))
         };
-    });
+    })
+    .AddScheme<Silo.Api.Middleware.ApiKeyAuthenticationOptions, Silo.Api.Middleware.ApiKeyAuthenticationHandler>(
+        Silo.Api.Middleware.ApiKeyAuthenticationOptions.DefaultSchemeName, options => { });
 
 builder.Services.AddAuthorization();
+
+// Configure Rate Limiting
+builder.Services.AddMemoryCache();
+builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
+builder.Services.AddInMemoryRateLimiting();
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 
 // Configure Hangfire
 builder.Services.AddHangfire((provider, configuration) =>
@@ -158,7 +171,7 @@ builder.Services.AddScoped<FileVersioningStep>();
 
 // Register additional services  
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<AuthenticationService>();
+builder.Services.AddScoped<IAuthenticationService, DatabaseAuthenticationService>();
 builder.Services.AddScoped<FileSyncService>();
 builder.Services.AddScoped<BackupService>();
 builder.Services.AddScoped<IFileVersioningService, FileVersioningService>();
@@ -175,6 +188,7 @@ builder.Services.AddScoped<IPipelineOrchestrator, PipelineOrchestrator>();
 
 // Configure settings and configuration classes
 builder.Services.Configure<AuthConfiguration>(builder.Configuration.GetSection("Authentication"));
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<AuthConfiguration>>().Value);
 builder.Services.Configure<VersioningConfiguration>(builder.Configuration.GetSection("Versioning"));
 builder.Services.Configure<BackupConfiguration>(builder.Configuration.GetSection("Backup"));
 builder.Services.Configure<ThumbnailConfiguration>(builder.Configuration.GetSection("Thumbnails"));
@@ -240,6 +254,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors();
+
+// Use rate limiting
+app.UseIpRateLimiting();
 
 // Use authentication and authorization
 app.UseAuthentication();
