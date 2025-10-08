@@ -4,13 +4,17 @@ using Hangfire;
 using Hangfire.Redis.StackExchange;
 using StackExchange.Redis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System.Text;
+using AspNetCoreRateLimit;
 using Silo.Core.Services;
 using Silo.Core.Pipeline;
 using Silo.Core.Models;
+using Silo.Core.Data;
 using Silo.Core.Services.AI;
 using Silo.Api.Services;
 using Silo.Api.Services.Pipeline;
@@ -65,6 +69,13 @@ builder.Services.AddSingleton(provider =>
     return dataSourceBuilder.Build();
 });
 
+// Configure DbContext
+builder.Services.AddDbContext<SiloDbContext>((provider, options) =>
+{
+    var dataSource = provider.GetRequiredService<NpgsqlDataSource>();
+    options.UseNpgsql(dataSource, b => b.MigrationsAssembly("Silo.Api"));
+});
+
 // Configure Redis for Hangfire
 builder.Services.AddSingleton<IConnectionMultiplexer>(provider =>
 {
@@ -80,7 +91,11 @@ if (string.IsNullOrEmpty(jwtSecretKey))
     throw new InvalidOperationException("JWT secret key is not configured");
 }
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -93,9 +108,55 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration.GetValue<string>("Authentication:JwtAudience"),
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey))
         };
-    });
+    })
+    .AddScheme<Silo.Api.Middleware.ApiKeyAuthenticationOptions, Silo.Api.Middleware.ApiKeyAuthenticationHandler>(
+        Silo.Api.Middleware.ApiKeyAuthenticationOptions.DefaultSchemeName, options => { });
 
-builder.Services.AddAuthorization();
+// Configure authorization with policies
+builder.Services.AddAuthorization(options =>
+{
+    // File operation policies
+    options.AddPolicy("FilesRead", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.PermissionRequirement("files:read")));
+    
+    options.AddPolicy("FilesWrite", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.PermissionRequirement("files:write")));
+    
+    options.AddPolicy("FilesDelete", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.PermissionRequirement("files:delete")));
+    
+    options.AddPolicy("FilesUpload", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.PermissionRequirement("files:upload")));
+    
+    options.AddPolicy("FilesDownload", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.PermissionRequirement("files:download")));
+
+    // User management policies
+    options.AddPolicy("UsersManage", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.PermissionRequirement("users:manage")));
+
+    // Role-based policies
+    options.AddPolicy("AdminOnly", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.RoleRequirement("Administrator")));
+    
+    options.AddPolicy("FileManagerOrAdmin", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.RoleRequirement("Administrator", "FileManager")));
+
+    // Tenant policies
+    options.AddPolicy("RequireTenant", policy =>
+        policy.Requirements.Add(new Silo.Api.Authorization.TenantRequirement(true)));
+});
+
+// Register authorization handlers
+builder.Services.AddSingleton<IAuthorizationHandler, Silo.Api.Authorization.PermissionHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, Silo.Api.Authorization.RoleHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, Silo.Api.Authorization.TenantHandler>();
+
+// Configure Rate Limiting
+builder.Services.AddMemoryCache();
+builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
+builder.Services.AddInMemoryRateLimiting();
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 
 // Configure Hangfire
 builder.Services.AddHangfire((provider, configuration) =>
@@ -149,11 +210,19 @@ builder.Services.AddScoped<FileVersioningStep>();
 
 // Register additional services  
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<AuthenticationService>();
+builder.Services.AddScoped<IAuthenticationService, DatabaseAuthenticationService>();
 builder.Services.AddScoped<FileSyncService>();
 builder.Services.AddScoped<BackupService>();
 builder.Services.AddScoped<IFileVersioningService, FileVersioningService>();
 builder.Services.AddScoped<ThumbnailService>();
+
+// Register tenant-aware services
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ITenantContextProvider, HttpTenantContextProvider>();
+builder.Services.AddScoped<ITenantStorageService, TenantMinioStorageService>();
+builder.Services.AddScoped<TenantOpenSearchIndexingService>();
+builder.Services.AddScoped<IQuotaService, QuotaService>();
+builder.Services.Configure<TenantBucketConfiguration>(builder.Configuration.GetSection("TenantBuckets"));
 builder.Services.AddScoped<IClamAvService>(serviceProvider =>
 {
     var logger = serviceProvider.GetRequiredService<ILogger<ClamAvService>>();
@@ -166,6 +235,7 @@ builder.Services.AddScoped<IPipelineOrchestrator, PipelineOrchestrator>();
 
 // Configure settings and configuration classes
 builder.Services.Configure<AuthConfiguration>(builder.Configuration.GetSection("Authentication"));
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<AuthConfiguration>>().Value);
 builder.Services.Configure<VersioningConfiguration>(builder.Configuration.GetSection("Versioning"));
 builder.Services.Configure<BackupConfiguration>(builder.Configuration.GetSection("Backup"));
 builder.Services.Configure<ThumbnailConfiguration>(builder.Configuration.GetSection("Thumbnails"));
@@ -231,6 +301,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors();
+
+// Use rate limiting
+app.UseIpRateLimiting();
 
 // Use authentication and authorization
 app.UseAuthentication();

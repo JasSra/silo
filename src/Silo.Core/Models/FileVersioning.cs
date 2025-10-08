@@ -6,6 +6,9 @@ public class FileVersion
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     
+    // Multi-tenant support
+    public Guid TenantId { get; set; }
+    
     [Required]
     public string FilePath { get; set; } = string.Empty;
     
