@@ -18,8 +18,37 @@ using Silo.Core.Data;
 using Silo.Core.Services.AI;
 using Silo.Api.Services;
 using Silo.Api.Services.Pipeline;
+using Silo.Api.Middleware;
+using Serilog;
+using Serilog.Events;
+
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+    .MinimumLevel.Override("System", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .Enrich.WithThreadId()
+    .Enrich.WithMachineName()
+    .Enrich.WithEnvironmentName()
+    .WriteTo.Console(
+        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+    .WriteTo.File(
+        path: "logs/silo-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 30,
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+    .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Use Serilog for logging
+builder.Host.UseSerilog();
+
+try
+{
+    Log.Information("Starting Silo File Management System");
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -285,11 +314,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Configure logging
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-builder.Logging.AddDebug();
-
 // Add health checks
 builder.Services.AddHealthChecks()
     .AddNpgSql(
@@ -299,7 +323,16 @@ builder.Services.AddHealthChecks()
     .AddRedis(
         builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379",
         name: "redis",
-        tags: new[] { "cache", "redis" });
+        tags: new[] { "cache", "redis" })
+    .AddCheck<Silo.Api.HealthChecks.MinioHealthCheck>(
+        "minio",
+        tags: new[] { "storage", "minio" })
+    .AddCheck<Silo.Api.HealthChecks.OpenSearchHealthCheck>(
+        "opensearch",
+        tags: new[] { "search", "opensearch" })
+    .AddCheck<Silo.Api.HealthChecks.HangfireHealthCheck>(
+        "hangfire",
+        tags: new[] { "jobs", "hangfire" });
 
 var app = builder.Build();
 
@@ -309,6 +342,28 @@ if (app.Environment.IsDevelopment())
     // app.UseSwagger();
     // app.UseSwaggerUI();
 }
+
+// Add Serilog request logging
+app.UseSerilogRequestLogging(options =>
+{
+    options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
+        diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
+        diagnosticContext.Set("UserAgent", httpContext.Request.Headers["User-Agent"].ToString());
+        
+        // Add tenant context if available
+        var tenantClaim = httpContext.User.FindFirst("tenant_id");
+        if (tenantClaim != null)
+        {
+            diagnosticContext.Set("TenantId", tenantClaim.Value);
+        }
+    };
+});
+
+// Add correlation ID middleware
+app.UseCorrelationId();
 
 app.UseHttpsRedirection();
 app.UseCors();
@@ -388,4 +443,17 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-app.Run();
+    Log.Information("Silo File Management System started successfully");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application failed to start");
+    throw;
+}
+finally
+{
+    Log.Information("Shutting down Silo File Management System");
+    Log.CloseAndFlush();
+}
+

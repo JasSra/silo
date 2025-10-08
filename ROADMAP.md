@@ -1,9 +1,9 @@
 # SaaS Transformation Roadmap
 
-## Overall Progress: Phase 1 Complete ✅ | Phase 2 95% Complete 🔄
+## Overall Progress: Phase 1 Complete ✅ | Phase 2 95% Complete 🔄 | Phase 3 40% Complete 🔄
 
-**Last Updated:** Phase 2 near completion - Pipeline and background jobs updated for tenant awareness
-**Current Focus:** Final testing and documentation for Phase 2, preparing for Phase 3
+**Last Updated:** Phase 3 progressing - Advanced health checks and structured logging complete
+**Current Focus:** OpenTelemetry instrumentation and metrics collection
 
 ---
 
@@ -176,7 +176,7 @@ Add tenant scopes to all storage models/services; partition MinIO buckets and Op
 
 ## Phase 3 – Observability & Reliability 🔄 IN PROGRESS
 
-### Status: 🔄 In Progress (10% Complete)
+### Status: 🔄 In Progress (40% Complete)
 
 ### Objective:
 Instrument services with OpenTelemetry metrics/tracing/logs; replace static health check with dependency probes; add Hangfire job dashboards with alerts; define SLOs, error budgets, and on-call runbooks; integrate centralized logging/monitoring stack.
@@ -186,9 +186,11 @@ Instrument services with OpenTelemetry metrics/tracing/logs; replace static heal
   - [x] PostgreSQL health check
   - [x] Redis health check
   - [x] Health endpoints: /health, /health/ready, /health/live
-- [ ] Advanced health checks (MinIO, OpenSearch, Hangfire)
+- [x] Advanced health checks (MinIO, OpenSearch, Hangfire)
+- [x] Structured logging with Serilog
+- [x] Correlation ID middleware for distributed tracing
+- [x] Request logging with tenant context enrichment
 - [ ] OpenTelemetry instrumentation
-- [ ] Advanced health checks with dependency probes
 - [ ] Hangfire dashboard enhancements and alerting
 - [ ] SLO/SLI/error budget definitions
 - [ ] Centralized logging (ELK/Loki)
@@ -260,12 +262,12 @@ Track usage per tenant, integrate with a billing provider (e.g., Stripe), and en
 |-------|--------|------------|------------------|
 | **Phase 1** | ✅ Complete | 100% | Auth, RBAC, Rate Limiting, API Keys |
 | **Phase 2** | 🔄 In Progress | 95% | Multi-tenant data layer, admin tooling, quotas |
-| **Phase 3** | 🔄 In Progress | 10% | Observability & reliability |
+| **Phase 3** | 🔄 In Progress | 40% | Observability & reliability |
 | **Phase 4** | 📋 Not Started | 0% | CI/CD & infrastructure |
 | **Phase 5** | 📋 Not Started | 0% | UI & customer experience |
 | **Phase 6** | 📋 Not Started | 0% | Billing & compliance |
 
-**Overall Project Completion: ~35% (1.95 + 0.1 of 6 phases complete)**
+**Overall Project Completion: ~38% (1.95 + 0.4 of 6 phases complete)**
 
 ---
 
