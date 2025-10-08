@@ -29,6 +29,7 @@ public class PipelineContext
 {
     public required FileMetadata FileMetadata { get; init; }
     public required Stream FileStream { get; init; }
+    public required Guid TenantId { get; init; }
     public Dictionary<string, object> StepResults { get; init; } = new();
     public Dictionary<string, object> Properties { get; init; } = new();
     

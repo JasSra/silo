@@ -35,7 +35,8 @@ public class FileHashIndexingStep : PipelineStepBase
 
         if (string.IsNullOrWhiteSpace(hash))
         {
-            _logger.LogWarning("No hash available for file {FileId}, skipping hash indexing", context.FileMetadata.Id);
+            _logger.LogInformation("No hash available for file {FileId} for tenant {TenantId}, skipping hash indexing", 
+                context.FileMetadata.Id, context.TenantId);
             return PipelineStepResult.Failed("File hash not available for indexing");
         }
 
@@ -76,7 +77,8 @@ public class FileHashIndexingStep : PipelineStepBase
             {
                 Hash = hash,
                 DuplicateCount = duplicateIds.Length,
-                DuplicateFileIds = duplicateIds
+                DuplicateFileIds = duplicateIds,
+                TenantId = context.TenantId
             });
 
             return PipelineStepResult.Succeeded(resultMetadata);

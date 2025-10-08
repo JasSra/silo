@@ -6,11 +6,11 @@ namespace Silo.Api.Services.Pipeline;
 
 public class FileIndexingStep : PipelineStepBase
 {
-    private readonly ISearchService _searchService;
+    private readonly Silo.Api.Services.TenantOpenSearchIndexingService _tenantSearchService;
 
-    public FileIndexingStep(ISearchService searchService, ILogger<PipelineStepBase> logger) : base(logger)
+    public FileIndexingStep(Silo.Api.Services.TenantOpenSearchIndexingService tenantSearchService, ILogger<PipelineStepBase> logger) : base(logger)
     {
-        _searchService = searchService;
+        _tenantSearchService = tenantSearchService;
     }
 
     public override string Name => "FileIndexing";
@@ -25,7 +25,8 @@ public class FileIndexingStep : PipelineStepBase
 
         try
         {
-            _logger.LogInformation("Indexing file {FileName} for search", context.FileMetadata.FileName);
+            _logger.LogInformation("Indexing file {FileName} for tenant {TenantId} in search", 
+                context.FileMetadata.FileName, context.TenantId);
 
             // Update file metadata with additional properties
             context.FileMetadata.LastModified = DateTime.UtcNow;
@@ -34,16 +35,17 @@ public class FileIndexingStep : PipelineStepBase
             // Enrich with AI metadata if available
             EnrichWithAIMetadata(context);
 
-            await _searchService.IndexFileAsync(context.FileMetadata);
+            await _tenantSearchService.IndexFileAsync(context.TenantId, context.FileMetadata, cancellationToken);
 
-            _logger.LogInformation("Successfully indexed file {FileName} with ID {DocumentId}", 
-                context.FileMetadata.FileName, context.FileMetadata.Id);
+            _logger.LogInformation("Successfully indexed file {FileName} with ID {DocumentId} for tenant {TenantId}", 
+                context.FileMetadata.FileName, context.FileMetadata.Id, context.TenantId);
 
             context.SetStepResult(Name, new
             {
                 DocumentId = context.FileMetadata.Id,
                 IndexedAt = DateTime.UtcNow,
-                IndexName = "files",
+                IndexName = $"tenant-{context.TenantId}-files",
+                TenantId = context.TenantId,
                 HasAIMetadata = context.HasProperty("AIExtractedMetadata")
             });
 
@@ -51,7 +53,8 @@ public class FileIndexingStep : PipelineStepBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to index file {FileName}", context.FileMetadata.FileName);
+            _logger.LogError(ex, "Failed to index file {FileName} for tenant {TenantId}", 
+                context.FileMetadata.FileName, context.TenantId);
             return PipelineStepResult.Failed($"Failed to index file: {ex.Message}");
         }
     }

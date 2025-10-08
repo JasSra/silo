@@ -109,7 +109,8 @@ public class AIMetadataExtractionStep : PipelineStepBase
         PipelineContext context, 
         CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Processing AI metadata extraction synchronously for {FileName}", context.FileMetadata.FileName);
+        _logger.LogInformation("Processing AI metadata extraction synchronously for {FileName} for tenant {TenantId}", 
+            context.FileMetadata.FileName, context.TenantId);
 
         // Get file content if available
         byte[]? fileContent = null;
@@ -140,8 +141,8 @@ public class AIMetadataExtractionStep : PipelineStepBase
             context.SetProperty("AIDescription", result.Description);
             context.SetProperty("AIConfidence", result.ConfidenceScore);
 
-            _logger.LogInformation("Successfully extracted AI metadata for {FileName} with {TagCount} tags", 
-                context.FileMetadata.FileName, result.Tags.Length);
+            _logger.LogInformation("Successfully extracted AI metadata for {FileName} with {TagCount} tags for tenant {TenantId}", 
+                context.FileMetadata.FileName, result.Tags.Length, context.TenantId);
 
             return PipelineStepResult.Succeeded(new Dictionary<string, object>
             {

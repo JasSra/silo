@@ -25,7 +25,8 @@ public class FileVersioningStep : PipelineStepBase
 
         try
         {
-            _logger.LogInformation("Creating version for file {FileName}", context.FileMetadata.FileName);
+            _logger.LogInformation("Creating version for file {FileName} for tenant {TenantId}", 
+                context.FileMetadata.FileName, context.TenantId);
 
             // Reset stream position for versioning
             if (context.FileStream.CanSeek)
@@ -42,27 +43,30 @@ public class FileVersioningStep : PipelineStepBase
                 {
                     ["ContentType"] = context.FileMetadata.MimeType,
                     ["UploadedAt"] = context.FileMetadata.CreatedAt.ToString("O"),
-                    ["FileSize"] = context.FileMetadata.FileSize.ToString()
+                    ["FileSize"] = context.FileMetadata.FileSize.ToString(),
+                    ["TenantId"] = context.TenantId.ToString()
                 });
 
             var versionResult = await _versioningService.CreateVersionAsync(versionRequest, null, cancellationToken);
 
-            _logger.LogInformation("Successfully created version {VersionId} for file {FileName}", 
-                versionResult.Id, context.FileMetadata.FileName);
+            _logger.LogInformation("Successfully created version {VersionId} for file {FileName} for tenant {TenantId}", 
+                versionResult.Id, context.FileMetadata.FileName, context.TenantId);
 
             context.SetStepResult(Name, new
             {
                 VersionId = versionResult.Id,
                 VersionNumber = versionResult.VersionNumber,
                 VersionedAt = versionResult.CreatedAt,
-                Checksum = versionResult.Checksum
+                Checksum = versionResult.Checksum,
+                TenantId = context.TenantId
             });
 
             return PipelineStepResult.Succeeded();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create version for file {FileName}", context.FileMetadata.FileName);
+            _logger.LogError(ex, "Failed to create version for file {FileName} for tenant {TenantId}", 
+                context.FileMetadata.FileName, context.TenantId);
             return PipelineStepResult.Failed($"Versioning failed: {ex.Message}");
         }
     }

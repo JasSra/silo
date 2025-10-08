@@ -17,6 +17,7 @@ public class FilesController : ControllerBase
     private readonly IStorageService _storageService;
     private readonly ISearchService _searchService;
     private readonly IOpenSearchIndexingService _openSearchService;
+    private readonly ITenantContextProvider _tenantContextProvider;
     private readonly ILogger<FilesController> _logger;
 
     public FilesController(
@@ -24,12 +25,14 @@ public class FilesController : ControllerBase
         IStorageService storageService,
         ISearchService searchService,
         IOpenSearchIndexingService openSearchService,
+        ITenantContextProvider tenantContextProvider,
         ILogger<FilesController> logger)
     {
         _pipelineOrchestrator = pipelineOrchestrator;
         _storageService = storageService;
         _searchService = searchService;
         _openSearchService = openSearchService;
+        _tenantContextProvider = tenantContextProvider;
         _logger = logger;
     }
 
@@ -65,7 +68,8 @@ public class FilesController : ControllerBase
             var context = new PipelineContext
             {
                 FileMetadata = fileMetadata,
-                FileStream = fileStream
+                FileStream = fileStream,
+                TenantId = _tenantContextProvider.GetCurrentTenantId()
             };
 
             context.SetProperty("ContentType", file.ContentType ?? "application/octet-stream");

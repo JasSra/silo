@@ -6,11 +6,11 @@ namespace Silo.Api.Services.Pipeline;
 
 public class FileStorageStep : PipelineStepBase
 {
-    private readonly IStorageService _storageService;
+    private readonly ITenantStorageService _tenantStorageService;
 
-    public FileStorageStep(IStorageService storageService, ILogger<PipelineStepBase> logger) : base(logger)
+    public FileStorageStep(ITenantStorageService tenantStorageService, ILogger<PipelineStepBase> logger) : base(logger)
     {
-        _storageService = storageService;
+        _tenantStorageService = tenantStorageService;
     }
 
     public override string Name => "FileStorage";
@@ -25,7 +25,8 @@ public class FileStorageStep : PipelineStepBase
 
         try
         {
-            _logger.LogInformation("Storing file {FileName} in primary storage", context.FileMetadata.FileName);
+            _logger.LogInformation("Storing file {FileName} for tenant {TenantId} in primary storage", 
+                context.FileMetadata.FileName, context.TenantId);
 
             var fileName = context.FileMetadata.StoragePath;
             var contentType = context.FileMetadata.MimeType;
@@ -36,15 +37,17 @@ public class FileStorageStep : PipelineStepBase
                 context.FileStream.Position = 0;
             }
 
-            await _storageService.UploadFileAsync(context.FileStream, fileName, contentType);
+            await _tenantStorageService.UploadFileAsync(context.TenantId, fileName, context.FileStream, contentType, cancellationToken);
 
-            _logger.LogInformation("Successfully stored file {FileName}", context.FileMetadata.FileName);
+            _logger.LogInformation("Successfully stored file {FileName} for tenant {TenantId}", 
+                context.FileMetadata.FileName, context.TenantId);
 
             context.SetStepResult(Name, new
             {
                 StoragePath = fileName,
                 StoredAt = DateTime.UtcNow,
-                ContentType = contentType
+                ContentType = contentType,
+                TenantId = context.TenantId
             });
 
             context.FileMetadata.Status = Silo.Core.Models.FileStatus.Indexed;
@@ -54,7 +57,8 @@ public class FileStorageStep : PipelineStepBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to store file {FileName}", context.FileMetadata.FileName);
+            _logger.LogError(ex, "Failed to store file {FileName} for tenant {TenantId}", 
+                context.FileMetadata.FileName, context.TenantId);
             return PipelineStepResult.Failed($"Storage failed: {ex.Message}");
         }
     }
