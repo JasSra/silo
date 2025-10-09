@@ -167,6 +167,22 @@
                         <i class="fas fa-cog"></i>
                         <span>Admin</span>
                     </a>
+                    <a href="#" class="nav-item" data-view="buckets">
+                        <i class="fas fa-hdd"></i>
+                        <span>Buckets</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="jobs">
+                        <i class="fas fa-tasks"></i>
+                        <span>Job Queue</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="audit">
+                        <i class="fas fa-history"></i>
+                        <span>Audit Logs</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="system">
+                        <i class="fas fa-server"></i>
+                        <span>System Status</span>
+                    </a>
                 </nav>
                 
                 <div class="sidebar-footer">
@@ -427,17 +443,88 @@
                     <div id="adminView" class="view">
                         <div class="view-header">
                             <h2>
-                                <i class="fas fa-cog"></i> Tenant Administration
+                                <i class="fas fa-cog"></i> Dashboard Overview
                             </h2>
+                            <div class="view-actions">
+                                <button class="btn btn-outline" id="refreshDashboard">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                            </div>
                         </div>
                         
-                        <div class="admin-panel">
-                            <div class="info-message">
-                                <i class="fas fa-info-circle"></i>
-                                <p>Tenant management and quota configuration</p>
+                        <div class="dashboard-grid">
+                            <!-- Quick Stats -->
+                            <div class="dashboard-card">
+                                <h3><i class="fas fa-tachometer-alt"></i> Quick Stats</h3>
+                                <div class="stats-mini-grid">
+                                    <div class="mini-stat">
+                                        <div class="mini-stat-icon success">
+                                            <i class="fas fa-check-circle"></i>
+                                        </div>
+                                        <div class="mini-stat-content">
+                                            <div class="mini-stat-value" id="activeUsers">0</div>
+                                            <div class="mini-stat-label">Active Users</div>
+                                        </div>
+                                    </div>
+                                    <div class="mini-stat">
+                                        <div class="mini-stat-icon info">
+                                            <i class="fas fa-tasks"></i>
+                                        </div>
+                                        <div class="mini-stat-content">
+                                            <div class="mini-stat-value" id="runningJobs">0</div>
+                                            <div class="mini-stat-label">Running Jobs</div>
+                                        </div>
+                                    </div>
+                                    <div class="mini-stat">
+                                        <div class="mini-stat-icon warning">
+                                            <i class="fas fa-hdd"></i>
+                                        </div>
+                                        <div class="mini-stat-content">
+                                            <div class="mini-stat-value" id="totalBuckets">0</div>
+                                            <div class="mini-stat-label">Total Buckets</div>
+                                        </div>
+                                    </div>
+                                    <div class="mini-stat">
+                                        <div class="mini-stat-icon error">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                        </div>
+                                        <div class="mini-stat-content">
+                                            <div class="mini-stat-value" id="alertsCount">0</div>
+                                            <div class="mini-stat-label">Active Alerts</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            
-                            <div class="admin-section">
+
+                            <!-- System Health -->
+                            <div class="dashboard-card">
+                                <h3><i class="fas fa-heartbeat"></i> System Health</h3>
+                                <div class="health-items">
+                                    <div class="health-item">
+                                        <div class="health-status online"></div>
+                                        <span>API Server</span>
+                                        <span class="health-value">Online</span>
+                                    </div>
+                                    <div class="health-item">
+                                        <div class="health-status online"></div>
+                                        <span>Database</span>
+                                        <span class="health-value">Healthy</span>
+                                    </div>
+                                    <div class="health-item">
+                                        <div class="health-status online"></div>
+                                        <span>MinIO Storage</span>
+                                        <span class="health-value">Connected</span>
+                                    </div>
+                                    <div class="health-item">
+                                        <div class="health-status online"></div>
+                                        <span>OpenSearch</span>
+                                        <span class="health-value">Operational</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quota Management -->
+                            <div class="dashboard-card">
                                 <h3><i class="fas fa-chart-pie"></i> Quota Management</h3>
                                 <div class="quota-info">
                                     <div class="quota-item">
@@ -454,10 +541,453 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Recent Activity -->
+                            <div class="dashboard-card full-width">
+                                <h3><i class="fas fa-history"></i> Recent Activity</h3>
+                                <div id="recentActivity" class="activity-list">
+                                    <div class="activity-item">
+                                        <i class="fas fa-upload activity-icon"></i>
+                                        <div class="activity-content">
+                                            <div class="activity-title">File uploaded</div>
+                                            <div class="activity-meta">document.pdf • 2 minutes ago</div>
+                                        </div>
+                                    </div>
+                                    <div class="activity-item">
+                                        <i class="fas fa-user activity-icon"></i>
+                                        <div class="activity-content">
+                                            <div class="activity-title">New user registered</div>
+                                            <div class="activity-meta">john.doe@example.com • 15 minutes ago</div>
+                                        </div>
+                                    </div>
+                                    <div class="activity-item">
+                                        <i class="fas fa-trash activity-icon"></i>
+                                        <div class="activity-content">
+                                            <div class="activity-title">File deleted</div>
+                                            <div class="activity-meta">old-backup.zip • 1 hour ago</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Buckets Management View -->
+                    <div id="bucketsView" class="view">
+                        <div class="view-header">
+                            <h2>
+                                <i class="fas fa-hdd"></i> Bucket Management
+                            </h2>
+                            <div class="view-actions">
+                                <button class="btn btn-primary" id="createBucketBtn">
+                                    <i class="fas fa-plus"></i> Create Bucket
+                                </button>
+                                <button class="btn btn-outline" id="refreshBuckets">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="buckets-grid" id="bucketsGrid">
+                            <!-- Buckets will be loaded here -->
+                        </div>
+                        
+                        <div id="bucketsEmpty" class="empty-state hidden">
+                            <i class="fas fa-hdd"></i>
+                            <h3>No buckets found</h3>
+                            <p>Create a bucket to start storing files</p>
+                        </div>
+                    </div>
+
+                    <!-- Job Queue View -->
+                    <div id="jobsView" class="view">
+                        <div class="view-header">
+                            <h2>
+                                <i class="fas fa-tasks"></i> Background Jobs
+                            </h2>
+                            <div class="view-actions">
+                                <select id="jobStatusFilter" class="select-input">
+                                    <option value="all">All Jobs</option>
+                                    <option value="running">Running</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="failed">Failed</option>
+                                </select>
+                                <button class="btn btn-outline" id="refreshJobs">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="jobs-stats">
+                            <div class="job-stat">
+                                <div class="job-stat-icon running">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                </div>
+                                <div class="job-stat-content">
+                                    <div class="job-stat-value" id="jobsRunning">0</div>
+                                    <div class="job-stat-label">Running</div>
+                                </div>
+                            </div>
+                            <div class="job-stat">
+                                <div class="job-stat-icon pending">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="job-stat-content">
+                                    <div class="job-stat-value" id="jobsPending">0</div>
+                                    <div class="job-stat-label">Pending</div>
+                                </div>
+                            </div>
+                            <div class="job-stat">
+                                <div class="job-stat-icon completed">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div class="job-stat-content">
+                                    <div class="job-stat-value" id="jobsCompleted">0</div>
+                                    <div class="job-stat-label">Completed</div>
+                                </div>
+                            </div>
+                            <div class="job-stat">
+                                <div class="job-stat-icon failed">
+                                    <i class="fas fa-times"></i>
+                                </div>
+                                <div class="job-stat-content">
+                                    <div class="job-stat-value" id="jobsFailed">0</div>
+                                    <div class="job-stat-label">Failed</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="jobs-table">
+                            <table id="jobsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Job ID</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                        <th>Progress</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="jobsTableBody">
+                                    <!-- Jobs will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Audit Logs View -->
+                    <div id="auditView" class="view">
+                        <div class="view-header">
+                            <h2>
+                                <i class="fas fa-history"></i> Audit Logs
+                            </h2>
+                            <div class="view-actions">
+                                <select id="auditActionFilter" class="select-input">
+                                    <option value="all">All Actions</option>
+                                    <option value="file.upload">File Upload</option>
+                                    <option value="file.download">File Download</option>
+                                    <option value="file.delete">File Delete</option>
+                                    <option value="user.login">User Login</option>
+                                    <option value="user.logout">User Logout</option>
+                                    <option value="admin.action">Admin Action</option>
+                                </select>
+                                <button class="btn btn-outline" id="refreshAudit">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                                <button class="btn btn-outline" id="exportAudit">
+                                    <i class="fas fa-download"></i> Export
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="audit-filters">
+                            <div class="filter-group">
+                                <label>Date Range</label>
+                                <div class="date-range">
+                                    <input type="date" id="auditDateFrom" class="input-sm">
+                                    <span>to</span>
+                                    <input type="date" id="auditDateTo" class="input-sm">
+                                </div>
+                            </div>
+                            <div class="filter-group">
+                                <label>User</label>
+                                <input type="text" id="auditUserFilter" placeholder="Filter by user..." class="input-sm">
+                            </div>
+                            <button class="btn btn-primary" id="applyAuditFilters">
+                                <i class="fas fa-filter"></i> Apply Filters
+                            </button>
+                        </div>
+                        
+                        <div class="audit-table">
+                            <table id="auditTable">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>User</th>
+                                        <th>Action</th>
+                                        <th>Resource</th>
+                                        <th>IP Address</th>
+                                        <th>Status</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="auditTableBody">
+                                    <!-- Audit logs will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- System Status View -->
+                    <div id="systemView" class="view">
+                        <div class="view-header">
+                            <h2>
+                                <i class="fas fa-server"></i> System Status
+                            </h2>
+                            <div class="view-actions">
+                                <button class="btn btn-outline" id="refreshSystem">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="system-grid">
+                            <!-- Service Status -->
+                            <div class="system-card">
+                                <h3><i class="fas fa-heartbeat"></i> Service Health</h3>
+                                <div class="service-list">
+                                    <div class="service-item">
+                                        <div class="service-info">
+                                            <i class="fas fa-server"></i>
+                                            <span>API Server</span>
+                                        </div>
+                                        <div class="service-status">
+                                            <span class="status-badge online">Online</span>
+                                            <span class="uptime">Uptime: 24h 35m</span>
+                                        </div>
+                                    </div>
+                                    <div class="service-item">
+                                        <div class="service-info">
+                                            <i class="fas fa-database"></i>
+                                            <span>PostgreSQL</span>
+                                        </div>
+                                        <div class="service-status">
+                                            <span class="status-badge online">Healthy</span>
+                                            <span class="uptime">Connections: 12/100</span>
+                                        </div>
+                                    </div>
+                                    <div class="service-item">
+                                        <div class="service-info">
+                                            <i class="fas fa-hdd"></i>
+                                            <span>MinIO Storage</span>
+                                        </div>
+                                        <div class="service-status">
+                                            <span class="status-badge online">Connected</span>
+                                            <span class="uptime">Buckets: 15</span>
+                                        </div>
+                                    </div>
+                                    <div class="service-item">
+                                        <div class="service-info">
+                                            <i class="fas fa-search"></i>
+                                            <span>OpenSearch</span>
+                                        </div>
+                                        <div class="service-status">
+                                            <span class="status-badge online">Operational</span>
+                                            <span class="uptime">Indices: 8</span>
+                                        </div>
+                                    </div>
+                                    <div class="service-item">
+                                        <div class="service-info">
+                                            <i class="fas fa-memory"></i>
+                                            <span>Redis Cache</span>
+                                        </div>
+                                        <div class="service-status">
+                                            <span class="status-badge online">Connected</span>
+                                            <span class="uptime">Hit Rate: 94%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Resource Usage -->
+                            <div class="system-card">
+                                <h3><i class="fas fa-chart-area"></i> Resource Usage</h3>
+                                <div class="resource-metrics">
+                                    <div class="metric">
+                                        <div class="metric-header">
+                                            <span>CPU Usage</span>
+                                            <span class="metric-value">45%</span>
+                                        </div>
+                                        <div class="metric-bar">
+                                            <div class="metric-fill" style="width: 45%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="metric">
+                                        <div class="metric-header">
+                                            <span>Memory Usage</span>
+                                            <span class="metric-value">62%</span>
+                                        </div>
+                                        <div class="metric-bar">
+                                            <div class="metric-fill" style="width: 62%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="metric">
+                                        <div class="metric-header">
+                                            <span>Disk Usage</span>
+                                            <span class="metric-value">38%</span>
+                                        </div>
+                                        <div class="metric-bar">
+                                            <div class="metric-fill" style="width: 38%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="metric">
+                                        <div class="metric-header">
+                                            <span>Network I/O</span>
+                                            <span class="metric-value">1.2 MB/s</span>
+                                        </div>
+                                        <div class="metric-bar">
+                                            <div class="metric-fill" style="width: 25%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Performance Metrics -->
+                            <div class="system-card full-width">
+                                <h3><i class="fas fa-tachometer-alt"></i> Performance Metrics</h3>
+                                <div class="performance-grid">
+                                    <div class="perf-card">
+                                        <div class="perf-icon">
+                                            <i class="fas fa-bolt"></i>
+                                        </div>
+                                        <div class="perf-content">
+                                            <div class="perf-value">145ms</div>
+                                            <div class="perf-label">Avg Response Time</div>
+                                        </div>
+                                    </div>
+                                    <div class="perf-card">
+                                        <div class="perf-icon">
+                                            <i class="fas fa-exchange-alt"></i>
+                                        </div>
+                                        <div class="perf-content">
+                                            <div class="perf-value">1,234</div>
+                                            <div class="perf-label">Requests/min</div>
+                                        </div>
+                                    </div>
+                                    <div class="perf-card">
+                                        <div class="perf-icon">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                        </div>
+                                        <div class="perf-content">
+                                            <div class="perf-value">0.02%</div>
+                                            <div class="perf-label">Error Rate</div>
+                                        </div>
+                                    </div>
+                                    <div class="perf-card">
+                                        <div class="perf-icon">
+                                            <i class="fas fa-clock"></i>
+                                        </div>
+                                        <div class="perf-content">
+                                            <div class="perf-value">99.9%</div>
+                                            <div class="perf-label">Uptime (30d)</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </main>
+        </div>
+    </div>
+
+    <!-- Notifications Panel -->
+    <div id="notificationsPanel" class="notifications-panel hidden">
+        <div class="notifications-header">
+            <h3><i class="fas fa-bell"></i> Notifications</h3>
+            <div class="notifications-actions">
+                <button class="btn-icon" id="markAllRead" title="Mark all as read">
+                    <i class="fas fa-check-double"></i>
+                </button>
+                <button class="btn-icon" id="closeNotifications" title="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="notifications-content" id="notificationsContent">
+            <div class="notification-item unread">
+                <div class="notification-icon success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="notification-content">
+                    <div class="notification-title">File uploaded successfully</div>
+                    <div class="notification-message">document.pdf (2.5 MB)</div>
+                    <div class="notification-time">2 minutes ago</div>
+                </div>
+            </div>
+            <div class="notification-item unread">
+                <div class="notification-icon info">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <div class="notification-content">
+                    <div class="notification-title">Storage quota at 75%</div>
+                    <div class="notification-message">Consider upgrading your plan</div>
+                    <div class="notification-time">1 hour ago</div>
+                </div>
+            </div>
+            <div class="notification-item">
+                <div class="notification-icon warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="notification-content">
+                    <div class="notification-title">Backup job completed with warnings</div>
+                    <div class="notification-message">3 files skipped</div>
+                    <div class="notification-time">3 hours ago</div>
+                </div>
+            </div>
+        </div>
+        <div class="notifications-footer">
+            <button class="btn btn-outline btn-sm">View All Notifications</button>
+        </div>
+    </div>
+
+    <!-- Create Bucket Modal -->
+    <div id="createBucketModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-hdd"></i> Create New Bucket</h3>
+                <button class="btn-icon" id="closeBucketModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Bucket Name</label>
+                    <input type="text" id="newBucketName" placeholder="e.g., my-bucket" class="input-full">
+                    <span class="error-message" id="bucketNameError"></span>
+                </div>
+                <div class="form-group">
+                    <label>Bucket Type</label>
+                    <select id="newBucketType" class="select-input">
+                        <option value="files">Files</option>
+                        <option value="thumbnails">Thumbnails</option>
+                        <option value="versions">Versions</option>
+                        <option value="backups">Backups</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="newBucketDesc" rows="3" placeholder="Optional description..." class="textarea-full"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="cancelBucketCreate">Cancel</button>
+                <button class="btn btn-primary" id="confirmBucketCreate">
+                    <i class="fas fa-plus"></i> Create Bucket
+                </button>
+            </div>
         </div>
     </div>
 
@@ -483,6 +1013,10 @@
     <script src="scripts/upload.js"></script>
     <script src="scripts/search.js"></script>
     <script src="scripts/analytics.js"></script>
+    <script src="scripts/buckets.js"></script>
+    <script src="scripts/jobs.js"></script>
+    <script src="scripts/audit.js"></script>
+    <script src="scripts/system.js"></script>
     <script src="scripts/app.js"></script>
 </body>
 </html>

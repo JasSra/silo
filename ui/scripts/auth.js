@@ -259,6 +259,10 @@ const Auth = {
         if (typeof Upload !== 'undefined') Upload.init();
         if (typeof Search !== 'undefined') Search.init();
         if (typeof Analytics !== 'undefined') Analytics.init();
+        if (typeof Buckets !== 'undefined') Buckets.init();
+        if (typeof Jobs !== 'undefined') Jobs.init();
+        if (typeof Audit !== 'undefined') Audit.init();
+        if (typeof System !== 'undefined') System.init();
     },
 
     /**

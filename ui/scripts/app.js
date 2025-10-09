@@ -17,6 +17,11 @@ function initializeApp() {
     if (typeof Auth !== 'undefined') {
         Auth.init();
     }
+    
+    // Initialize notifications
+    if (typeof Notifications !== 'undefined') {
+        Notifications.init();
+    }
 }
 
 /**
@@ -116,7 +121,7 @@ function switchView(viewName) {
         targetView.classList.add('active');
     }
     
-    // Load view-specific data
+    // Load view-specific data and initialize modules
     switch (viewName) {
         case 'files':
             if (typeof Files !== 'undefined' && Files.loadFiles) {
@@ -126,6 +131,31 @@ function switchView(viewName) {
         case 'analytics':
             if (typeof Analytics !== 'undefined' && Analytics.loadAnalytics) {
                 Analytics.loadAnalytics();
+            }
+            break;
+        case 'buckets':
+            if (typeof Buckets !== 'undefined' && Buckets.loadBuckets) {
+                Buckets.init();
+            }
+            break;
+        case 'jobs':
+            if (typeof Jobs !== 'undefined' && Jobs.loadJobs) {
+                Jobs.init();
+            }
+            break;
+        case 'audit':
+            if (typeof Audit !== 'undefined' && Audit.loadAuditLogs) {
+                Audit.init();
+            }
+            break;
+        case 'system':
+            if (typeof System !== 'undefined' && System.loadSystemStatus) {
+                System.init();
+            }
+            break;
+        case 'admin':
+            if (typeof System !== 'undefined' && System.loadSystemStatus) {
+                System.init();
             }
             break;
     }
