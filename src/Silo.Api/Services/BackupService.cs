@@ -1,5 +1,6 @@
 using Hangfire;
 using Silo.Core.Models;
+using Silo.Core.Services;
 
 namespace Silo.Api.Services;
 
@@ -82,6 +83,7 @@ public class BackupService : IBackupService
     private readonly ILogger<BackupService> _logger;
     private readonly IMinioStorageService _storageService;
     private readonly IOpenSearchIndexingService _indexingService;
+    private readonly ITenantContextProvider _tenantContextProvider;
     private readonly BackupConfiguration _config;
     private readonly Dictionary<Guid, BackupJob> _backupJobs = new();
     private readonly SemaphoreSlim _backupSemaphore = new(3, 3); // Max 3 concurrent backups
@@ -90,16 +92,20 @@ public class BackupService : IBackupService
         ILogger<BackupService> logger,
         IMinioStorageService storageService,
         IOpenSearchIndexingService indexingService,
+        ITenantContextProvider tenantContextProvider,
         BackupConfiguration config)
     {
         _logger = logger;
         _storageService = storageService;
         _indexingService = indexingService;
+        _tenantContextProvider = tenantContextProvider;
         _config = config;
     }
 
     public Task<BackupJob> CreateBackupJobAsync(BackupJobRequest request, CancellationToken cancellationToken = default)
     {
+        var tenantId = _tenantContextProvider.GetCurrentTenantId();
+        
         var job = new BackupJob(
             Guid.NewGuid(),
             request.Name,
@@ -123,7 +129,8 @@ public class BackupService : IBackupService
             ScheduleBackupJob(job);
         }
 
-        _logger.LogInformation("Created backup job {JobId}: {JobName}", job.Id, job.Name);
+        _logger.LogInformation("Created backup job {JobId}: {JobName} for tenant {TenantId}", 
+            job.Id, job.Name, tenantId);
         return Task.FromResult(job);
     }
 
@@ -159,7 +166,14 @@ public class BackupService : IBackupService
         
         try
         {
-            _logger.LogInformation("Starting backup execution for job {JobId}: {JobName}", jobId, job.Name);
+            var tenantId = Guid.Empty;
+            if (_tenantContextProvider.TryGetCurrentTenantId(out var tid))
+            {
+                tenantId = tid;
+            }
+            
+            _logger.LogInformation("Starting backup execution for job {JobId}: {JobName} for tenant {TenantId}", 
+                jobId, job.Name, tenantId);
             
             // Update job status
             var updatedJob = job with { Status = BackupStatus.Running };

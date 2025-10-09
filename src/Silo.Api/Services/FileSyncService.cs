@@ -3,6 +3,7 @@ using System.Text;
 using Hangfire;
 using Silo.Core.Models;
 using Silo.Core.Pipeline;
+using Silo.Core.Services;
 
 namespace Silo.Api.Services;
 
@@ -26,6 +27,7 @@ public class FileSyncService : IFileSyncService, IDisposable
     private readonly IMinioStorageService _storageService;
     private readonly IOpenSearchIndexingService _indexingService;
     private readonly IPipelineOrchestrator _pipelineOrchestrator;
+    private readonly ITenantContextProvider _tenantContextProvider;
     private readonly FileSyncConfiguration _config;
     private readonly Dictionary<string, FileSystemWatcher> _watchers = new();
     private readonly SemaphoreSlim _syncSemaphore = new(1, 1);
@@ -39,12 +41,14 @@ public class FileSyncService : IFileSyncService, IDisposable
         IMinioStorageService storageService,
         IOpenSearchIndexingService indexingService,
         IPipelineOrchestrator pipelineOrchestrator,
+        ITenantContextProvider tenantContextProvider,
         FileSyncConfiguration config)
     {
         _logger = logger;
         _storageService = storageService;
         _indexingService = indexingService;
         _pipelineOrchestrator = pipelineOrchestrator;
+        _tenantContextProvider = tenantContextProvider;
         _config = config;
         
         // Setup periodic conflict resolution
@@ -343,7 +347,8 @@ public class FileSyncService : IFileSyncService, IDisposable
             var context = new PipelineContext
             {
                 FileMetadata = metadata,
-                FileStream = fileStream
+                FileStream = fileStream,
+                TenantId = _tenantContextProvider.GetCurrentTenantId()
             };
 
             var result = await _pipelineOrchestrator.ExecuteAsync(context, cancellationToken);

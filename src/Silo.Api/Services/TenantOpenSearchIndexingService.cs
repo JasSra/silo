@@ -45,7 +45,7 @@ public class TenantOpenSearchIndexingService
             if (!existsResponse.Exists)
             {
                 var createResponse = await _client.Indices.CreateAsync(indexName, c => c
-                    .Map<FileMetadata>(m => m
+                    .Map<Silo.Core.Models.FileMetadata>(m => m
                         .AutoMap()
                     )
                     .Settings(s => s
@@ -72,7 +72,7 @@ public class TenantOpenSearchIndexingService
     /// <summary>
     /// Index a file for a specific tenant
     /// </summary>
-    public async Task IndexFileAsync(Guid tenantId, FileMetadata fileMetadata, CancellationToken cancellationToken = default)
+    public async Task IndexFileAsync(Guid tenantId, Silo.Core.Models.FileMetadata fileMetadata, CancellationToken cancellationToken = default)
     {
         var indexName = GetTenantIndexName(tenantId, "files");
 

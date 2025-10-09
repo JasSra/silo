@@ -34,7 +34,8 @@ public class ThumbnailGenerationStep : PipelineStepBase
 
         try
         {
-            _logger.LogInformation("Generating thumbnails for image {FileName}", context.FileMetadata.FileName);
+            _logger.LogInformation("Generating thumbnails for image {FileName} for tenant {TenantId}", 
+                context.FileMetadata.FileName, context.TenantId);
 
             // Reset stream position for thumbnail generation
             if (context.FileStream.CanSeek)
@@ -42,26 +43,31 @@ public class ThumbnailGenerationStep : PipelineStepBase
                 context.FileStream.Position = 0;
             }
 
+            // Store tenant ID in context for thumbnail service to use
+            context.SetProperty("TenantId", context.TenantId);
+
             var thumbnailResult = await _thumbnailService.GenerateThumbnailsAsync(
                 context.FileStream,
                 context.FileMetadata.FileName,
                 cancellationToken);
 
-            _logger.LogInformation("Successfully generated {Count} thumbnails for image {FileName}", 
-                thumbnailResult.Thumbnails.Count, context.FileMetadata.FileName);
+            _logger.LogInformation("Successfully generated {Count} thumbnails for image {FileName} for tenant {TenantId}", 
+                thumbnailResult.Thumbnails.Count, context.FileMetadata.FileName, context.TenantId);
 
             context.SetStepResult(Name, new
             {
                 ThumbnailPaths = thumbnailResult.Thumbnails,
                 ThumbnailCount = thumbnailResult.Thumbnails.Count,
-                ThumbnailsGeneratedAt = DateTime.UtcNow
+                ThumbnailsGeneratedAt = DateTime.UtcNow,
+                TenantId = context.TenantId
             });
 
             return PipelineStepResult.Succeeded();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to generate thumbnails for image {FileName}", context.FileMetadata.FileName);
+            _logger.LogError(ex, "Failed to generate thumbnails for image {FileName} for tenant {TenantId}", 
+                context.FileMetadata.FileName, context.TenantId);
             return PipelineStepResult.Failed($"Thumbnail generation failed: {ex.Message}");
         }
     }
