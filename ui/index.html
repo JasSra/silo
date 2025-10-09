@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Silo File Management - Customer Portal</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/dark-theme.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="dark-theme">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p class="loading-text">Loading...</p>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Main App Container -->
+    <div id="app" class="app-container">
+        <!-- Login Screen -->
+        <div id="loginScreen" class="auth-screen">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <i class="fas fa-cloud-upload-alt logo-icon"></i>
+                    <h1>Silo File Management</h1>
+                    <p class="subtitle">Secure, scalable, multi-tenant file storage</p>
+                </div>
+                
+                <div class="auth-tabs">
+                    <button class="auth-tab active" data-tab="login">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                    <button class="auth-tab" data-tab="signup">
+                        <i class="fas fa-user-plus"></i> Sign Up
+                    </button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="loginForm" class="auth-form active">
+                    <div class="form-group">
+                        <label for="loginEmail">
+                            <i class="fas fa-envelope"></i> Email
+                        </label>
+                        <input type="email" id="loginEmail" required placeholder="your.email@example.com">
+                        <span class="error-message" id="loginEmailError"></span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="loginPassword">
+                            <i class="fas fa-lock"></i> Password
+                        </label>
+                        <div class="password-input">
+                            <input type="password" id="loginPassword" required placeholder="Enter your password">
+                            <button type="button" class="toggle-password" data-target="loginPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <span class="error-message" id="loginPasswordError"></span>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="rememberMe">
+                            <span>Remember me</span>
+                        </label>
+                        <a href="#" class="forgot-password">Forgot password?</a>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                </form>
+
+                <!-- Signup Form -->
+                <form id="signupForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="signupEmail">
+                            <i class="fas fa-envelope"></i> Email
+                        </label>
+                        <input type="email" id="signupEmail" required placeholder="your.email@example.com">
+                        <span class="error-message" id="signupEmailError"></span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="signupUsername">
+                            <i class="fas fa-user"></i> Username
+                        </label>
+                        <input type="text" id="signupUsername" required placeholder="Choose a username">
+                        <span class="error-message" id="signupUsernameError"></span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="signupPassword">
+                            <i class="fas fa-lock"></i> Password
+                        </label>
+                        <div class="password-input">
+                            <input type="password" id="signupPassword" required placeholder="Create a strong password">
+                            <button type="button" class="toggle-password" data-target="signupPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="password-strength">
+                            <div class="strength-bar" id="passwordStrengthBar"></div>
+                            <span class="strength-text" id="passwordStrengthText"></span>
+                        </div>
+                        <span class="error-message" id="signupPasswordError"></span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="signupConfirmPassword">
+                            <i class="fas fa-lock"></i> Confirm Password
+                        </label>
+                        <input type="password" id="signupConfirmPassword" required placeholder="Re-enter your password">
+                        <span class="error-message" id="signupConfirmError"></span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="agreeTerms" required>
+                            <span>I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></span>
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </button>
+                </form>
+
+                <div class="theme-toggle">
+                    <button id="themeToggle" class="btn-icon" title="Toggle theme">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard (shown after login) -->
+        <div id="mainDashboard" class="main-dashboard hidden">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h2>Silo</h2>
+                </div>
+                
+                <nav class="sidebar-nav">
+                    <a href="#" class="nav-item active" data-view="files">
+                        <i class="fas fa-folder"></i>
+                        <span>My Files</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="upload">
+                        <i class="fas fa-upload"></i>
+                        <span>Upload</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="search">
+                        <i class="fas fa-search"></i>
+                        <span>Search</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="analytics">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Analytics</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="admin">
+                        <i class="fas fa-cog"></i>
+                        <span>Admin</span>
+                    </a>
+                </nav>
+                
+                <div class="sidebar-footer">
+                    <div class="storage-usage">
+                        <div class="usage-header">
+                            <i class="fas fa-database"></i>
+                            <span>Storage Used</span>
+                        </div>
+                        <div class="usage-bar">
+                            <div class="usage-fill" id="storageUsageFill" style="width: 0%"></div>
+                        </div>
+                        <div class="usage-text" id="storageUsageText">0 MB / 0 GB</div>
+                    </div>
+                    <button class="btn btn-outline" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Top Bar -->
+                <header class="top-bar">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="quickSearch" placeholder="Quick search files...">
+                    </div>
+                    
+                    <div class="top-bar-actions">
+                        <button class="btn-icon" id="notificationsBtn" title="Notifications">
+                            <i class="fas fa-bell"></i>
+                            <span class="badge">3</span>
+                        </button>
+                        
+                        <button class="btn-icon" id="themeToggleMain" title="Toggle theme">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                        
+                        <div class="user-menu">
+                            <button class="user-avatar">
+                                <i class="fas fa-user-circle"></i>
+                                <span id="userName">User</span>
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Content Views -->
+                <div class="content-area">
+                    <!-- Files View -->
+                    <div id="filesView" class="view active">
+                        <div class="view-header">
+                            <h2>
+                                <i class="fas fa-folder"></i> My Files
+                            </h2>
+                            <div class="view-actions">
+                                <div class="view-mode">
+                                    <button class="btn-icon active" data-mode="grid" title="Grid view">
+                                        <i class="fas fa-th"></i>
+                                    </button>
+                                    <button class="btn-icon" data-mode="list" title="List view">
+                                        <i class="fas fa-list"></i>
+                                    </button>
+                                </div>
+                                <select id="sortFiles" class="select-input">
+                                    <option value="date-desc">Newest First</option>
+                                    <option value="date-asc">Oldest First</option>
+                                    <option value="name-asc">Name A-Z</option>
+                                    <option value="name-desc">Name Z-A</option>
+                                    <option value="size-desc">Largest First</option>
+                                    <option value="size-asc">Smallest First</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div id="filesGrid" class="files-grid">
+                            <!-- Files will be loaded here -->
+                        </div>
+                        
+                        <div id="filesEmpty" class="empty-state">
+                            <i class="fas fa-folder-open"></i>
+                            <h3>No files yet</h3>
+                            <p>Upload your first file to get started</p>
+                            <button class="btn btn-primary" onclick="switchView('upload')">
+                                <i class="fas fa-upload"></i> Upload Files
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Upload View -->
+                    <div id="uploadView" class="view">
+                        <div class="view-header">
+                            <h2>
+                                <i class="fas fa-upload"></i> Upload Files
+                            </h2>
+                        </div>
+                        
+                        <div class="upload-area">
+                            <div id="dropZone" class="drop-zone">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <h3>Drag & Drop Files Here</h3>
+                                <p>or click to browse</p>
+                                <input type="file" id="fileInput" multiple hidden>
+                                <button class="btn btn-primary" id="browseBtn">
+                                    <i class="fas fa-folder-open"></i> Browse Files
+                                </button>
+                            </div>
+                            
+                            <div id="uploadQueue" class="upload-queue hidden">
+                                <h3>Upload Queue</h3>
+                                <div id="uploadList" class="upload-list"></div>
+                                <div class="upload-actions">
+                                    <button class="btn btn-primary" id="startUpload">
+                                        <i class="fas fa-upload"></i> Start Upload
+                                    </button>
+                                    <button class="btn btn-outline" id="clearQueue">
+                                        <i class="fas fa-times"></i> Clear Queue
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search View -->
+                    <div id="searchView" class="view">
+                        <div class="view-header">
+                            <h2>
+                                <i class="fas fa-search"></i> Advanced Search
+                            </h2>
+                        </div>
+                        
+                        <div class="search-panel">
+                            <div class="search-filters">
+                                <div class="filter-group">
+                                    <label>
+                                        <i class="fas fa-search"></i> Search Query
+                                    </label>
+                                    <input type="text" id="searchQuery" placeholder="Enter search terms...">
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label>
+                                        <i class="fas fa-file"></i> File Extension
+                                    </label>
+                                    <input type="text" id="searchExtensions" placeholder="e.g., pdf, jpg, png">
+                                </div>
+                                
+                                <div class="filter-row">
+                                    <div class="filter-group">
+                                        <label>
+                                            <i class="fas fa-calendar"></i> Date From
+                                        </label>
+                                        <input type="date" id="searchDateFrom">
+                                    </div>
+                                    
+                                    <div class="filter-group">
+                                        <label>
+                                            <i class="fas fa-calendar"></i> Date To
+                                        </label>
+                                        <input type="date" id="searchDateTo">
+                                    </div>
+                                </div>
+                                
+                                <div class="filter-row">
+                                    <div class="filter-group">
+                                        <label>
+                                            <i class="fas fa-database"></i> Min Size (bytes)
+                                        </label>
+                                        <input type="number" id="searchMinSize" min="0">
+                                    </div>
+                                    
+                                    <div class="filter-group">
+                                        <label>
+                                            <i class="fas fa-database"></i> Max Size (bytes)
+                                        </label>
+                                        <input type="number" id="searchMaxSize" min="0">
+                                    </div>
+                                </div>
+                                
+                                <div class="filter-actions">
+                                    <button class="btn btn-primary" id="executeSearch">
+                                        <i class="fas fa-search"></i> Search
+                                    </button>
+                                    <button class="btn btn-outline" id="clearSearch">
+                                        <i class="fas fa-times"></i> Clear
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div id="searchResults" class="search-results">
+                                <div class="empty-state">
+                                    <i class="fas fa-search"></i>
+                                    <h3>Enter search criteria</h3>
+                                    <p>Use the filters above to find your files</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Analytics View -->
+                    <div id="analyticsView" class="view">
+                        <div class="view-header">
+                            <h2>
+                                <i class="fas fa-chart-line"></i> Usage Analytics
+                            </h2>
+                        </div>
+                        
+                        <div class="analytics-grid">
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-file"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-value" id="totalFiles">0</div>
+                                    <div class="stat-label">Total Files</div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-database"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-value" id="totalStorage">0 MB</div>
+                                    <div class="stat-label">Storage Used</div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-upload"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-value" id="uploadsToday">0</div>
+                                    <div class="stat-label">Uploads Today</div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-download"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-value" id="downloadsToday">0</div>
+                                    <div class="stat-label">Downloads Today</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="file-types-list">
+                            <h3>File Type Distribution</h3>
+                            <div id="fileTypesList" class="types-list"></div>
+                        </div>
+                    </div>
+
+                    <!-- Admin View -->
+                    <div id="adminView" class="view">
+                        <div class="view-header">
+                            <h2>
+                                <i class="fas fa-cog"></i> Tenant Administration
+                            </h2>
+                        </div>
+                        
+                        <div class="admin-panel">
+                            <div class="info-message">
+                                <i class="fas fa-info-circle"></i>
+                                <p>Tenant management and quota configuration</p>
+                            </div>
+                            
+                            <div class="admin-section">
+                                <h3><i class="fas fa-chart-pie"></i> Quota Management</h3>
+                                <div class="quota-info">
+                                    <div class="quota-item">
+                                        <label>Storage Quota:</label>
+                                        <span id="quotaStorage">Loading...</span>
+                                    </div>
+                                    <div class="quota-item">
+                                        <label>Max Users:</label>
+                                        <span id="quotaUsers">Loading...</span>
+                                    </div>
+                                    <div class="quota-item">
+                                        <label>Max API Keys:</label>
+                                        <span id="quotaApiKeys">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- File Context Menu -->
+    <div id="fileContextMenu" class="context-menu hidden">
+        <button class="context-menu-item" data-action="download">
+            <i class="fas fa-download"></i> Download
+        </button>
+        <button class="context-menu-item" data-action="info">
+            <i class="fas fa-info-circle"></i> Info
+        </button>
+        <button class="context-menu-item" data-action="delete">
+            <i class="fas fa-trash"></i> Delete
+        </button>
+    </div>
+
+    <!-- Scripts -->
+    <script src="scripts/config.js"></script>
+    <script src="scripts/utils.js"></script>
+    <script src="scripts/api.js"></script>
+    <script src="scripts/auth.js"></script>
+    <script src="scripts/files.js"></script>
+    <script src="scripts/upload.js"></script>
+    <script src="scripts/search.js"></script>
+    <script src="scripts/analytics.js"></script>
+    <script src="scripts/app.js"></script>
+</body>
+</html>
