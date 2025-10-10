@@ -1,0 +1,183 @@
+/* Dark Theme Styles */
+
+.dark-theme {
+    /* Text Colors (Dark Theme) */
+    --color-text-primary: #f9fafb;
+    --color-text-secondary: #d1d5db;
+    --color-text-tertiary: #9ca3af;
+    
+    /* Background Colors (Dark Theme) */
+    --color-bg-primary: #111827;
+    --color-bg-secondary: #1f2937;
+    --color-bg-tertiary: #374151;
+    
+    /* Border Colors (Dark Theme) */
+    --color-border: #374151;
+    --color-border-hover: #4b5563;
+    
+    /* Shadows (Dark Theme) */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.6);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.7);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.8);
+}
+
+.dark-theme .auth-screen {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+}
+
+.dark-theme .auth-container {
+    background-color: var(--color-bg-secondary);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.9);
+}
+
+.dark-theme .form-group input,
+.dark-theme .select-input {
+    background-color: var(--color-bg-tertiary);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+}
+
+.dark-theme .form-group input::placeholder {
+    color: var(--color-text-tertiary);
+}
+
+.dark-theme .form-group input:focus,
+.dark-theme .select-input:focus {
+    background-color: var(--color-bg-primary);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.dark-theme .toast {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border);
+}
+
+.dark-theme .search-bar {
+    background-color: var(--color-bg-tertiary);
+}
+
+.dark-theme .search-bar input {
+    color: var(--color-text-primary);
+}
+
+.dark-theme .search-bar input::placeholder {
+    color: var(--color-text-tertiary);
+}
+
+.dark-theme .file-card {
+    background-color: var(--color-bg-primary);
+    border-color: var(--color-border);
+}
+
+.dark-theme .file-card:hover {
+    background-color: var(--color-bg-secondary);
+    box-shadow: var(--shadow-lg);
+}
+
+.dark-theme .drop-zone {
+    border-color: var(--color-border);
+    background-color: var(--color-bg-primary);
+}
+
+.dark-theme .drop-zone:hover,
+.dark-theme .drop-zone.drag-over {
+    border-color: var(--color-primary);
+    background-color: rgba(99, 102, 241, 0.1);
+}
+
+.dark-theme .upload-list {
+    background-color: var(--color-bg-primary);
+    border-color: var(--color-border);
+}
+
+.dark-theme .upload-item {
+    border-color: var(--color-border);
+    background-color: var(--color-bg-secondary);
+}
+
+.dark-theme .stat-card {
+    background-color: var(--color-bg-primary);
+    border-color: var(--color-border);
+}
+
+.dark-theme .search-filters,
+.dark-theme .file-types-list,
+.dark-theme .admin-section {
+    background-color: var(--color-bg-primary);
+    border-color: var(--color-border);
+}
+
+.dark-theme .quota-item {
+    background-color: var(--color-bg-secondary);
+}
+
+.dark-theme .context-menu {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border);
+}
+
+.dark-theme .storage-usage {
+    background-color: var(--color-bg-tertiary);
+}
+
+.dark-theme .info-message {
+    background-color: var(--color-bg-primary);
+    border-color: var(--color-border);
+}
+
+/* Dark theme scrollbar */
+.dark-theme ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.dark-theme ::-webkit-scrollbar-track {
+    background: var(--color-bg-secondary);
+}
+
+.dark-theme ::-webkit-scrollbar-thumb {
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-full);
+}
+
+.dark-theme ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border-hover);
+}
+
+/* Dark theme selection */
+.dark-theme ::selection {
+    background-color: rgba(99, 102, 241, 0.3);
+    color: var(--color-text-primary);
+}
+
+/* Dark theme link styles */
+.dark-theme a {
+    color: var(--color-primary);
+}
+
+.dark-theme a:hover {
+    color: var(--color-primary-hover);
+}
+
+/* Dark theme code blocks (if any) */
+.dark-theme code {
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-primary);
+    padding: 0.125rem 0.25rem;
+    border-radius: var(--radius-sm);
+}
+
+/* Dark theme for disabled states */
+.dark-theme .btn:disabled,
+.dark-theme input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Dark theme focus outlines */
+.dark-theme *:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
